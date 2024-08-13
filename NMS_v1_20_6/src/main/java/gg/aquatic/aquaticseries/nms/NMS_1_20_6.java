@@ -16,9 +16,9 @@ import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_19_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -26,7 +26,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class NMS_1_19_4 implements NMSAdapter {
+public class NMS_1_20_6 implements NMSAdapter {
 
     private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
 
@@ -40,7 +40,6 @@ public class NMS_1_19_4 implements NMSAdapter {
         final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
         final var entity = entityOpt.get().create(
                 worldServer,
-                null,
                 null,
                 new BlockPos((int) location.toVector().getX(), (int) location.toVector().getY(), (int) location.toVector().getZ()),
                 MobSpawnType.COMMAND,
@@ -111,6 +110,7 @@ public class NMS_1_19_4 implements NMSAdapter {
         final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
         sendPacket(abstractAudience,packet);
     }
+
 
     @Override
     public void teleportEntity(int i, Location location, AbstractAudience abstractAudience) {
@@ -192,7 +192,7 @@ public class NMS_1_19_4 implements NMSAdapter {
                             playerHandle.getUUID(),
                             playerHandle.getGameProfile(),
                             true,
-                            playerHandle.latency,
+                            player.getPing(),
                             GameType.valueOf(gameMode.toString().toUpperCase()),
                             playerHandle.listName,
                             null

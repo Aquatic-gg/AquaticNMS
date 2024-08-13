@@ -7,18 +7,21 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_19_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -26,7 +29,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class NMS_1_19_4 implements NMSAdapter {
+public class NMS_1_21 implements NMSAdapter {
 
     private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
 
@@ -37,10 +40,10 @@ public class NMS_1_19_4 implements NMSAdapter {
             return -1;
         }
 
-        final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
+        final var worldServer = ((CraftWorld)location.getWorld()).getHandle();
+
         final var entity = entityOpt.get().create(
                 worldServer,
-                null,
                 null,
                 new BlockPos((int) location.toVector().getX(), (int) location.toVector().getY(), (int) location.toVector().getZ()),
                 MobSpawnType.COMMAND,
@@ -48,26 +51,45 @@ public class NMS_1_19_4 implements NMSAdapter {
                 false
         );
 
-        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        entity.absMoveTo(location.getX(),location.getY(),location.getZ(),location.getYaw(),location.getPitch());
 
         if (consumer != null) {
             consumer.accept(entity.getBukkitEntity());
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
-        sendPacket(abstractAudience,entity.getAddEntityPacket());
-        sendPacket(abstractAudience, packetData);
+
+
+
+        var seenBy = new HashSet<ServerPlayerConnection>();
+        for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
+            Player player = Bukkit.getPlayer(uuid);
+            seenBy.add(((CraftPlayer)player).getHandle().connection);
+        }
+
+        var tracker = new ServerEntity(
+                ((CraftWorld) location.getWorld()).getHandle(),
+                entity,
+                entity.getType().updateInterval(),
+                true,
+                packet -> {
+                },
+                seenBy
+        );
+
+        sendPacket(abstractAudience,entity.getAddEntityPacket(tracker));
+        sendPacket(abstractAudience,packetData);
 
         if (entity instanceof LivingEntity livingEntity) {
-            List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+            List<Pair<EquipmentSlot, ItemStack>> list = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
+                list.add(Pair.of(value,livingEntity.getItemBySlot(value)));
             }
             final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
             sendPacket(abstractAudience,packet);
         }
 
-        entities.put(entity.getId(), entity);
+        entities.put(entity.getId(),entity);
         return entity.getId();
     }
 
@@ -111,6 +133,7 @@ public class NMS_1_19_4 implements NMSAdapter {
         final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
         sendPacket(abstractAudience,packet);
     }
+
 
     @Override
     public void teleportEntity(int i, Location location, AbstractAudience abstractAudience) {
@@ -192,7 +215,7 @@ public class NMS_1_19_4 implements NMSAdapter {
                             playerHandle.getUUID(),
                             playerHandle.getGameProfile(),
                             true,
-                            playerHandle.latency,
+                            player.getPing(),
                             GameType.valueOf(gameMode.toString().toUpperCase()),
                             playerHandle.listName,
                             null
@@ -212,6 +235,7 @@ public class NMS_1_19_4 implements NMSAdapter {
             ((CraftPlayer)player).getHandle().connection.send(packet);
         });
     }
+
 
     private void sendPacket(AbstractAudience audience, Packet packet) {
         sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer

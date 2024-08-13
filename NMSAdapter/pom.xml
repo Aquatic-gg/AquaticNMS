@@ -19,11 +19,18 @@
 
     <repositories>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>reposilite-repository</id>
+            <name>Reposilite Repository</name>
+            <url>https://repo.nekroplex.com/releases</url>
         </repository>
     </repositories>
+
     <dependencies>
+        <dependency>
+            <groupId>gg.aquatic.aquaticseries</groupId>
+            <artifactId>aquaticlib</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
