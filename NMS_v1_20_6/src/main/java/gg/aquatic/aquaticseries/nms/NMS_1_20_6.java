@@ -1,12 +1,25 @@
 package gg.aquatic.aquaticseries.nms;
 
 import com.mojang.datafixers.util.Pair;
+import gg.aquatic.aquaticseries.lib.EventExtKt;
+import gg.aquatic.aquaticseries.lib.StringExtKt;
+import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
+import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
+import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
+import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
+import gg.aquatic.aquaticseries.nms.menu.InventoryAdapterImpl;
+import gg.aquatic.aquaticseries.paper.adapt.PaperString;
+import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -19,9 +32,11 @@ import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R4.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R4.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
@@ -54,8 +69,8 @@ public class NMS_1_20_6 implements NMSAdapter {
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
-        sendPacket(abstractAudience,entity.getAddEntityPacket());
-        sendPacket(abstractAudience, packetData);
+        sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
+        sendPacket(abstractAudience, packetData, true);
 
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
@@ -63,7 +78,7 @@ public class NMS_1_20_6 implements NMSAdapter {
                 list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
             final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
-            sendPacket(abstractAudience,packet);
+            sendPacket(abstractAudience,packet, true);
         }
 
         entities.put(entity.getId(), entity);
@@ -78,7 +93,7 @@ public class NMS_1_20_6 implements NMSAdapter {
     @Override
     public void despawnEntity(List<Integer> list, AbstractAudience abstractAudience) {
         final var packet = new ClientboundRemoveEntitiesPacket(new IntArrayList(list));
-        sendPacket(abstractAudience, packet);
+        sendPacket(abstractAudience, packet, true);
 
     }
 
@@ -91,7 +106,7 @@ public class NMS_1_20_6 implements NMSAdapter {
         }
 
         final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData().getNonDefaultValues());
-        sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata);
+        sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata, true);
 
         if (entity instanceof LivingEntity livingEntity) {
             final List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> equipmentMap = new ArrayList<>();
@@ -99,7 +114,7 @@ public class NMS_1_20_6 implements NMSAdapter {
                 equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
             }
             final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
-            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet);
+            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet, true);
         }
     }
 
@@ -108,7 +123,7 @@ public class NMS_1_20_6 implements NMSAdapter {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         entity.getBukkitEntity().setVelocity(vector);
         final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience,packet, true);
     }
 
 
@@ -122,7 +137,7 @@ public class NMS_1_20_6 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience,packet, true);
     }
 
     @Override
@@ -144,14 +159,14 @@ public class NMS_1_20_6 implements NMSAdapter {
                 true
         );
 
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience,packet, true);
         sendPacket(abstractAudience,
-                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F)))
+                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F))), true
         );
     }
 
     @Override
-    public void setSpectatorTarget(int i, int i1, AbstractAudience abstractAudience) {
+    public void setSpectatorTarget(int i, AbstractAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         if (entity == null) {
             for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
@@ -159,20 +174,20 @@ public class NMS_1_20_6 implements NMSAdapter {
                 entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
 
                 final var packet = new ClientboundSetCameraPacket(entity);
-                sendPacket(List.of(player),packet);
+                sendPacket(List.of(player),packet, true);
             }
             return;
         }
 
         final var packet = new ClientboundSetCameraPacket(entity);
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience,packet, true);
 
     }
 
     @Override
     public void setGamemode(GameMode gameMode, Player player) {
         final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
-        sendPacket(Arrays.asList(player),packet);
+        sendPacket(Arrays.asList(player),packet, true);
     }
 
     @Override
@@ -200,22 +215,33 @@ public class NMS_1_20_6 implements NMSAdapter {
             );
 
             packetsField.set(packet,list);
-            sendPacket(Arrays.asList(player), packet);
+            sendPacket(Arrays.asList(player), packet, true);
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void sendPacket(List<Player> players, Packet packet) {
+    private void sendPacket(List<Player> players, Packet packet, boolean isProtected) {
+        if (isProtected) {
+            var protectedPacket = new ProtectedPacket(packet);
+            players.forEach(player -> {
+                var craftPlayer = (CraftPlayer) player;
+                var packetListener = craftPlayer.getHandle().connection;
+                var connection = getConnection(packetListener);
+                var pipeline = connection.channel.pipeline();
+                pipeline.writeAndFlush(protectedPacket);
+            });
+            return;
+        }
         players.forEach(player -> {
-            ((CraftPlayer)player).getHandle().connection.send(packet);
+            ((CraftPlayer) player).getHandle().connection.send(packet);
         });
     }
 
-    private void sendPacket(AbstractAudience audience, Packet packet) {
+    private void sendPacket(AbstractAudience audience, Packet packet, boolean isProtected) {
         sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
-        ).toList(), packet);
+        ).toList(), packet, isProtected);
     }
 
     @Override
@@ -225,11 +251,71 @@ public class NMS_1_20_6 implements NMSAdapter {
         var containerId = container.containerId;
 
         var packet = new ClientboundContainerSetSlotPacket(containerId, container.getStateId(), i, CraftItemStack.asNMSCopy(itemStack));
-        sendPacket(List.of(player), packet);
+        sendPacket(List.of(player), packet, true);
     }
 
     @Override
     public void setInventoryContent(AbstractAudience abstractAudience, InventoryType inventoryType, Collection<? extends org.bukkit.inventory.ItemStack> collection, org.bukkit.inventory.ItemStack itemStack) {
+
+    }
+
+    private Field connectionField;
+
+    private Connection getConnection(final ServerGamePacketListenerImpl playerConnection) {
+        try {
+            if (connectionField == null) {
+                connectionField = ServerGamePacketListenerImpl.class.getDeclaredField("h");
+                connectionField.setAccessible(true);
+            }
+            return (Connection) connectionField.get(playerConnection);
+        } catch (final NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private final InventoryAdapterImpl inventoryAdapter = new InventoryAdapterImpl();
+
+    @Override
+    public @Nonnull InventoryAdapter inventoryAdapter() {
+        return inventoryAdapter;
+    }
+
+    public void sendTitleUpdate(Player player, AquaticString aquaticString) {
+        var serverPlayer = ((CraftPlayer) player).getHandle();
+        if (serverPlayer.containerMenu == null) {
+            return;
+        }
+        var container = serverPlayer.containerMenu;
+        var containerId = container.containerId;
+        var title = serverPlayer.containerMenu.getTitle();
+
+        if (player.getOpenInventory().getTopInventory().getHolder() instanceof CustomInventory customInventory) {
+            EventExtKt.call(
+                    new InventoryTitleUpdateEvent(
+                            customInventory,
+                            StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title, ((CraftPlayer) player).getHandle().registryAccess())),
+                            aquaticString
+                    )
+            );
+        }
+
+        Component serializedTitle = null;
+        if (aquaticString instanceof PaperString paperString) {
+            serializedTitle = Component.Serializer.fromJson(paperString.toJson(), ((CraftPlayer) player).getHandle().registryAccess());
+        } else if (aquaticString instanceof SpigotString spigotString) {
+            serializedTitle = CraftChatMessage.fromJSONOrString(spigotString.getFormatted());
+        }
+
+        if (serializedTitle == null) {
+            return;
+        }
+
+        var packet = new ClientboundOpenScreenPacket(
+                containerId,
+                serverPlayer.containerMenu.getType(),
+                serializedTitle
+        );
+        sendPacket(List.of(player), packet, true);
 
     }
 }
