@@ -263,7 +263,7 @@ public class NMS_1_20_4 implements NMSAdapter {
     private Connection getConnection(final ServerGamePacketListenerImpl playerConnection) {
         try {
             if (connectionField == null) {
-                connectionField = ServerGamePacketListenerImpl.class.getDeclaredField("h");
+                connectionField = ServerGamePacketListenerImpl.class.getDeclaredField("c");
                 connectionField.setAccessible(true);
             }
             return (Connection) connectionField.get(playerConnection);
