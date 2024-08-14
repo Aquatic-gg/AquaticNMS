@@ -78,4 +78,12 @@
         </dependency>
     </dependencies>
 
+
+    <distributionManagement>
+        <repository>
+            <id>aquatic-repository</id>
+            <url>https://repo.nekroplex.com/releases</url>
+        </repository>
+    </distributionManagement>
+
 </project>
