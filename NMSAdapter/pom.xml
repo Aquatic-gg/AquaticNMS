@@ -29,7 +29,7 @@
         <dependency>
             <groupId>gg.aquatic.aquaticseries</groupId>
             <artifactId>aquaticlib</artifactId>
-            <version>1.0.1.4</version>
+            <version>${aquaticlib.version}</version>
             <classifier>all</classifier>
             <exclusions>
                 <exclusion>

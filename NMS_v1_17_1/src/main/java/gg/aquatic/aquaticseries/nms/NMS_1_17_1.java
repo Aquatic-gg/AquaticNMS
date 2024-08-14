@@ -8,6 +8,7 @@ import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
+import gg.aquatic.aquaticseries.nms.menu.InventoryAdapterImpl;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
@@ -29,6 +30,8 @@ import org.bukkit.craftbukkit.v1_17_R1.util.CraftVector;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+
+import javax.annotation.Nonnull;
 
 
 public final class NMS_1_17_1 implements NMSAdapter {
@@ -157,7 +160,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
     }
 
     @Override
-    public void setSpectatorTarget(int i, int i1, AbstractAudience abstractAudience) {
+    public void setSpectatorTarget(int i, AbstractAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         if (entity == null) {
             for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
@@ -235,14 +238,11 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
     }
 
-    @Override
-    public InventoryAdapter inventoryAdapter() {
-        return null;
-    }
+    private final InventoryAdapterImpl inventoryAdapter = new InventoryAdapterImpl();
 
     @Override
-    public void setSpectatorTarget(int i, AbstractAudience abstractAudience) {
-
+    public @Nonnull InventoryAdapter inventoryAdapter() {
+        return inventoryAdapter;
     }
 
     @Override
