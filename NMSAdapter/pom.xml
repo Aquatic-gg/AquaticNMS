@@ -23,13 +23,40 @@
             <name>Reposilite Repository</name>
             <url>https://repo.nekroplex.com/releases</url>
         </repository>
+        <repository>
+            <id>sonatype-oss-snapshots1</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
     </repositories>
 
     <dependencies>
         <dependency>
             <groupId>gg.aquatic.aquaticseries</groupId>
             <artifactId>aquaticlib</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1.4</version>
+            <classifier>all</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>gg.aquatic.aquaticseries.spigot</groupId>
+                    <artifactId>spigot</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>gg.aquatic.aquaticseries.paper</groupId>
+                    <artifactId>paper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>gg.aquatic.aquaticseries.core</groupId>
+                    <artifactId>core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.lumine</groupId>
+                    <artifactId>Mythic-Dist</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.spigotmc</groupId>
@@ -38,10 +65,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.18.2-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-serializer-gson</artifactId>
+            <version>4.17.0</version>
         </dependency>
     </dependencies>
 </project>

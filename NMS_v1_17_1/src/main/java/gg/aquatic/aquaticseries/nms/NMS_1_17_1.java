@@ -4,6 +4,8 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 import com.mojang.datafixers.util.Pair;
+import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
+import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
 import net.minecraft.core.BlockPos;
@@ -29,208 +31,223 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 
-    public final class NMS_1_17_1 implements NMSAdapter {
+public final class NMS_1_17_1 implements NMSAdapter {
 
-        private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
+    private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
 
-        @Override
-        public int spawnEntity(Location location, String s, AbstractAudience abstractAudience, Consumer<Entity> consumer) {
-            final var entityOpt = EntityType.byString(s.toLowerCase());
-            if (entityOpt.isEmpty()) {
-                return -1;
-            }
-
-            final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
-            final var entity = entityOpt.get().create(
-                    worldServer,
-                    null,
-                    null,
-                    null,
-                    new BlockPos(CraftVector.toNMS(location.toVector())),
-                    MobSpawnType.COMMAND,
-                    true,
-                    false
-            );
-
-            entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-
-            if (consumer != null) {
-                consumer.accept(entity.getBukkitEntity());
-            }
-
-            final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
-            sendPacket(abstractAudience,entity.getAddEntityPacket());
-            sendPacket(abstractAudience, packetData);
-
-            if (entity instanceof LivingEntity livingEntity) {
-                List<Pair<EquipmentSlot, ItemStack>> list = new ArrayList<>();
-                for (EquipmentSlot value : EquipmentSlot.values()) {
-                    list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
-                }
-                final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
-                sendPacket(abstractAudience,packet);
-            }
-
-            entities.put(entity.getId(), entity);
-            return entity.getId();
+    @Override
+    public int spawnEntity(Location location, String s, AbstractAudience abstractAudience, Consumer<Entity> consumer) {
+        final var entityOpt = EntityType.byString(s.toLowerCase());
+        if (entityOpt.isEmpty()) {
+            return -1;
         }
 
-        @Override
-        public Entity getEntity(int i) {
-            return entities.get(i).getBukkitEntity();
+        final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
+        final var entity = entityOpt.get().create(
+                worldServer,
+                null,
+                null,
+                null,
+                new BlockPos(CraftVector.toNMS(location.toVector())),
+                MobSpawnType.COMMAND,
+                true,
+                false
+        );
+
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+
+        if (consumer != null) {
+            consumer.accept(entity.getBukkitEntity());
         }
 
-        @Override
-        public void despawnEntity(List<Integer> list, AbstractAudience abstractAudience) {
-            final var packet = new ClientboundRemoveEntitiesPacket(new IntArrayList(list));
-            sendPacket(abstractAudience, packet);
+        final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
+        sendPacket(abstractAudience,entity.getAddEntityPacket());
+        sendPacket(abstractAudience, packetData);
 
-        }
-
-        @Override
-        public void updateEntity(int i, Consumer<Entity> consumer, AbstractAudience abstractAudience) {
-            net.minecraft.world.entity.Entity entity = entities.get(i);
-
-            if (consumer != null) {
-                consumer.accept(entity.getBukkitEntity());
+        if (entity instanceof LivingEntity livingEntity) {
+            List<Pair<EquipmentSlot, ItemStack>> list = new ArrayList<>();
+            for (EquipmentSlot value : EquipmentSlot.values()) {
+                list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-
-            final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
-            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata);
-
-            if (entity instanceof LivingEntity livingEntity) {
-                final List<Pair<EquipmentSlot, ItemStack>> equipmentMap = new ArrayList<>();
-                for (EquipmentSlot value : EquipmentSlot.values()) {
-                    equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
-                }
-                final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
-                sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet);
-            }
-        }
-
-        @Override
-        public void updateEntityVelocity(int i, Vector vector, AbstractAudience abstractAudience) {
-            net.minecraft.world.entity.Entity entity = entities.get(i);
-            entity.getBukkitEntity().setVelocity(vector);
-            final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
             sendPacket(abstractAudience,packet);
         }
 
-        @Override
-        public void teleportEntity(int i, Location location, AbstractAudience abstractAudience) {
-            if (!entities.containsKey(i)) {
-                return;
+        entities.put(entity.getId(), entity);
+        return entity.getId();
+    }
+
+    @Override
+    public Entity getEntity(int i) {
+        return entities.get(i).getBukkitEntity();
+    }
+
+    @Override
+    public void despawnEntity(List<Integer> list, AbstractAudience abstractAudience) {
+        final var packet = new ClientboundRemoveEntitiesPacket(new IntArrayList(list));
+        sendPacket(abstractAudience, packet);
+
+    }
+
+    @Override
+    public void updateEntity(int i, Consumer<Entity> consumer, AbstractAudience abstractAudience) {
+        net.minecraft.world.entity.Entity entity = entities.get(i);
+
+        if (consumer != null) {
+            consumer.accept(entity.getBukkitEntity());
+        }
+
+        final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
+        sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata);
+
+        if (entity instanceof LivingEntity livingEntity) {
+            final List<Pair<EquipmentSlot, ItemStack>> equipmentMap = new ArrayList<>();
+            for (EquipmentSlot value : EquipmentSlot.values()) {
+                equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
             }
-            net.minecraft.world.entity.Entity entity = entities.get(i);
-
-            entity.getBukkitEntity().teleport(location);
-            final var packet = new ClientboundTeleportEntityPacket(entity);
-
-            sendPacket(abstractAudience,packet);
-        }
-
-        @Override
-        public void moveEntity(int i, Location location, AbstractAudience abstractAudience) {
-            if (!entities.containsKey(i)) {
-                return;
-            }
-            net.minecraft.world.entity.Entity entity = entities.get(i);
-            Location prevLoc = entity.getBukkitEntity().getLocation();
-
-            entity.getBukkitEntity().teleport(location);
-            final var packet = new ClientboundMoveEntityPacket.PosRot(
-                    i,
-                    (short)((location.getX() * 32 - prevLoc.getX() * 32) * 128),
-                    (short)((location.getY() * 32 - prevLoc.getY() * 32) * 128),
-                    (short)((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
-                    (byte) ((int) (location.getYaw() * 256.0F / 360.0F)),
-                    (byte) ((int) (location.getPitch() * 256.0F / 360.0F)),
-                    true
-            );
-
-            sendPacket(abstractAudience,packet);
-            sendPacket(abstractAudience,
-                    new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F)))
-            );
-        }
-
-        @Override
-        public void setSpectatorTarget(int i, int i1, AbstractAudience abstractAudience) {
-            net.minecraft.world.entity.Entity entity = entities.get(i);
-            if (entity == null) {
-                for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
-                    Player player = Bukkit.getPlayer(uuid);
-                    entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
-
-                    final var packet = new ClientboundSetCameraPacket(entity);
-                    sendPacket(List.of(player),packet);
-                }
-                return;
-            }
-
-            final var packet = new ClientboundSetCameraPacket(entity);
-            sendPacket(abstractAudience,packet);
-
-        }
-
-        @Override
-        public void setGamemode(GameMode gameMode, Player player) {
-            final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
-            sendPacket(Arrays.asList(player),packet);
-        }
-
-        @Override
-        public void setPlayerInfoGamemode(GameMode gameMode, Player player) {
-            final var playerHandle = ((CraftPlayer)player).getHandle();
-
-            ClientboundPlayerInfoPacket.Action action2 = ClientboundPlayerInfoPacket.Action.valueOf("UPDATE_GAME_MODE");
-            final var packet = new ClientboundPlayerInfoPacket(action2,playerHandle);
-
-            try {
-                final Field packetsField;
-                packetsField = packet.getClass().getDeclaredField("b");
-                packetsField.setAccessible(true);
-
-                List<ClientboundPlayerInfoPacket.PlayerUpdate> list = new ArrayList<>();
-                list.add(new ClientboundPlayerInfoPacket.PlayerUpdate(
-                        playerHandle.getGameProfile(),
-                        playerHandle.latency,
-                        GameType.valueOf(gameMode.toString().toUpperCase()),
-                        playerHandle.listName)
-                );
-
-                packetsField.set(packet,list);
-                sendPacket(Arrays.asList(player), packet);
-
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        private void sendPacket(List<Player> players, Packet packet) {
-            players.forEach(player -> {
-                ((CraftPlayer)player).getHandle().connection.send(packet);
-            });
-        }
-
-        private void sendPacket(AbstractAudience audience, Packet packet) {
-            sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
-            ).toList(), packet);
-        }
-
-        @Override
-        public void setContainerItem(Player player, org.bukkit.inventory.ItemStack itemStack, int i) {
-            var serverPlayer = ((CraftPlayer) player).getHandle();
-            var container = serverPlayer.containerMenu;
-            var containerId = container.containerId;
-
-            var packet = new ClientboundContainerSetSlotPacket(containerId, container.getStateId(), i, CraftItemStack.asNMSCopy(itemStack));
-            sendPacket(List.of(player), packet);
-        }
-
-        @Override
-        public void setInventoryContent(AbstractAudience abstractAudience, InventoryType inventoryType, Collection<? extends org.bukkit.inventory.ItemStack> collection, org.bukkit.inventory.ItemStack itemStack) {
-
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
+            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet);
         }
     }
+
+    @Override
+    public void updateEntityVelocity(int i, Vector vector, AbstractAudience abstractAudience) {
+        net.minecraft.world.entity.Entity entity = entities.get(i);
+        entity.getBukkitEntity().setVelocity(vector);
+        final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
+        sendPacket(abstractAudience,packet);
+    }
+
+    @Override
+    public void teleportEntity(int i, Location location, AbstractAudience abstractAudience) {
+        if (!entities.containsKey(i)) {
+            return;
+        }
+        net.minecraft.world.entity.Entity entity = entities.get(i);
+
+        entity.getBukkitEntity().teleport(location);
+        final var packet = new ClientboundTeleportEntityPacket(entity);
+
+        sendPacket(abstractAudience,packet);
+    }
+
+    @Override
+    public void moveEntity(int i, Location location, AbstractAudience abstractAudience) {
+        if (!entities.containsKey(i)) {
+            return;
+        }
+        net.minecraft.world.entity.Entity entity = entities.get(i);
+        Location prevLoc = entity.getBukkitEntity().getLocation();
+
+        entity.getBukkitEntity().teleport(location);
+        final var packet = new ClientboundMoveEntityPacket.PosRot(
+                i,
+                (short)((location.getX() * 32 - prevLoc.getX() * 32) * 128),
+                (short)((location.getY() * 32 - prevLoc.getY() * 32) * 128),
+                (short)((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
+                (byte) ((int) (location.getYaw() * 256.0F / 360.0F)),
+                (byte) ((int) (location.getPitch() * 256.0F / 360.0F)),
+                true
+        );
+
+        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience,
+                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F)))
+        );
+    }
+
+    @Override
+    public void setSpectatorTarget(int i, int i1, AbstractAudience abstractAudience) {
+        net.minecraft.world.entity.Entity entity = entities.get(i);
+        if (entity == null) {
+            for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
+                Player player = Bukkit.getPlayer(uuid);
+                entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
+
+                final var packet = new ClientboundSetCameraPacket(entity);
+                sendPacket(List.of(player),packet);
+            }
+            return;
+        }
+
+        final var packet = new ClientboundSetCameraPacket(entity);
+        sendPacket(abstractAudience,packet);
+
+    }
+
+    @Override
+    public void setGamemode(GameMode gameMode, Player player) {
+        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
+        sendPacket(Arrays.asList(player),packet);
+    }
+
+    @Override
+    public void setPlayerInfoGamemode(GameMode gameMode, Player player) {
+        final var playerHandle = ((CraftPlayer)player).getHandle();
+
+        ClientboundPlayerInfoPacket.Action action2 = ClientboundPlayerInfoPacket.Action.valueOf("UPDATE_GAME_MODE");
+        final var packet = new ClientboundPlayerInfoPacket(action2,playerHandle);
+
+        try {
+            final Field packetsField;
+            packetsField = packet.getClass().getDeclaredField("b");
+            packetsField.setAccessible(true);
+
+            List<ClientboundPlayerInfoPacket.PlayerUpdate> list = new ArrayList<>();
+            list.add(new ClientboundPlayerInfoPacket.PlayerUpdate(
+                    playerHandle.getGameProfile(),
+                    playerHandle.latency,
+                    GameType.valueOf(gameMode.toString().toUpperCase()),
+                    playerHandle.listName)
+            );
+
+            packetsField.set(packet,list);
+            sendPacket(Arrays.asList(player), packet);
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void sendPacket(List<Player> players, Packet packet) {
+        players.forEach(player -> {
+            ((CraftPlayer)player).getHandle().connection.send(packet);
+        });
+    }
+
+    private void sendPacket(AbstractAudience audience, Packet packet) {
+        sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
+        ).toList(), packet);
+    }
+
+    @Override
+    public void setContainerItem(Player player, org.bukkit.inventory.ItemStack itemStack, int i) {
+        var serverPlayer = ((CraftPlayer) player).getHandle();
+        var container = serverPlayer.containerMenu;
+        var containerId = container.containerId;
+
+        var packet = new ClientboundContainerSetSlotPacket(containerId, container.getStateId(), i, CraftItemStack.asNMSCopy(itemStack));
+        sendPacket(List.of(player), packet);
+    }
+
+    @Override
+    public void setInventoryContent(AbstractAudience abstractAudience, InventoryType inventoryType, Collection<? extends org.bukkit.inventory.ItemStack> collection, org.bukkit.inventory.ItemStack itemStack) {
+
+    }
+
+    @Override
+    public InventoryAdapter inventoryAdapter() {
+        return null;
+    }
+
+    @Override
+    public void setSpectatorTarget(int i, AbstractAudience abstractAudience) {
+
+    }
+
+    @Override
+    public void sendTitleUpdate(Player player, AquaticString aquaticString) {
+
+    }
+}
 
