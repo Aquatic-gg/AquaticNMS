@@ -15,7 +15,9 @@ import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
 import gg.aquatic.aquaticseries.nms.menu.InventoryAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
+import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.world.entity.EntityType;
@@ -32,6 +34,7 @@ import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_17_R1.util.CraftChatMessage;
 import org.bukkit.craftbukkit.v1_17_R1.util.CraftVector;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -282,19 +285,23 @@ public final class NMS_1_17_1 implements NMSAdapter {
             );
         }
 
-        var serializedTitle = "";
+        Component serializedTitle = null;
         if (aquaticString instanceof PaperString paperString) {
-            serializedTitle = paperString.toJson();
-        } else {
-            serializedTitle = aquaticString.toString();
+            serializedTitle = net.minecraft.network.chat.Component.Serializer.fromJson(
+                    paperString.toJson()
+            );
+        } else if (aquaticString instanceof SpigotString spigotString) {
+            serializedTitle = CraftChatMessage.fromJSONOrString(spigotString.getFormatted());
+        }
+
+        if (serializedTitle == null) {
+            return;
         }
 
         var packet = new ClientboundOpenScreenPacket(
                 containerId,
                 serverPlayer.containerMenu.getType(),
-                net.minecraft.network.chat.Component.Serializer.fromJson(
-                        serializedTitle
-                )
+                serializedTitle
         );
         sendPacket(List.of(player), packet, true);
 
