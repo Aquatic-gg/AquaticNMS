@@ -2,7 +2,7 @@ package gg.aquatic.aquaticseries.nms.v1_17_1.listener;
 
 import gg.aquatic.aquaticseries.lib.inventory.lib.InventoryHandler;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
-import gg.aquatic.aquaticseries.nms.ProtectedPacket;
+import gg.aquatic.aquaticseries.nms.v1_17_1.ProtectedPacket;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import io.netty.channel.ChannelDuplexHandler;
@@ -77,7 +77,7 @@ public class MenuPacketListener extends ChannelDuplexHandler {
 
         if (packet instanceof ClientboundContainerSetContentPacket pkt) {
             try {
-                var openedInventory = player.getOpenInventory().getTopInventory();
+                var openedInventory = player.getOpenInventory().getTopInventory().getHolder();
                 if (!(openedInventory instanceof CustomInventory customInventory)) {
                     super.write(ctx, packet, promise);
                     return;
@@ -87,7 +87,7 @@ public class MenuPacketListener extends ChannelDuplexHandler {
                 NonNullList<ItemStack> items = NonNullList.create();
                 var i = 0;
                 for (ItemStack item : pkt.getItems()) {
-                    if (i > size) {
+                    if (i >= size) {
                         var contentItem = customInvContent.get(i);
                         if (contentItem == null) {
                             items.add(item);
@@ -116,13 +116,13 @@ public class MenuPacketListener extends ChannelDuplexHandler {
 
         if (packet instanceof ClientboundContainerSetSlotPacket pkt) {
             try {
-                var openedInventory = player.getOpenInventory().getTopInventory();
+                var openedInventory = player.getOpenInventory().getTopInventory().getHolder();
                 if (!(openedInventory instanceof CustomInventory customInventory)) {
                     super.write(ctx, packet, promise);
                     return;
                 }
                 var size = player.getOpenInventory().getTopInventory().getSize();
-                if (pkt.getSlot() > size) {
+                if (pkt.getSlot() >= size) {
                     return;
                 }
             } catch (Exception ignored) {

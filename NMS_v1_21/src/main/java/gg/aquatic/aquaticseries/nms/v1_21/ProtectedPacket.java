@@ -1,4 +1,4 @@
-package gg.aquatic.aquaticseries.nms;
+package gg.aquatic.aquaticseries.nms.v1_21;
 
 import net.minecraft.network.protocol.Packet;
 

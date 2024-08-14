@@ -9,7 +9,6 @@ import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
-import gg.aquatic.aquaticseries.nms.ProtectedPacket;
 import gg.aquatic.aquaticseries.nms.v1_18_2.menu.InventoryAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;

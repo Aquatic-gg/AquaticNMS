@@ -3,6 +3,7 @@ package gg.aquatic.aquaticseries.nms.v1_20_4.menu;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.nms.v1_20_4.listener.MenuPacketListener;
 import net.minecraft.network.Connection;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
@@ -48,11 +49,20 @@ public class InventoryAdapterImpl implements InventoryAdapter {
     private Connection getConnection(final ServerGamePacketListenerImpl playerConnection) {
         try {
             if (connectionField == null) {
-                connectionField = ServerGamePacketListenerImpl.class.getDeclaredField("h");
-                connectionField.setAccessible(true);
+                for (Field declaredField : ServerCommonPacketListenerImpl.class.getDeclaredFields()) {
+                    if (declaredField.getType().equals(Connection.class)) {
+                        connectionField = declaredField;
+                        connectionField.setAccessible(true);
+                        break;
+                    }
+                }
             }
+            if (connectionField == null) {
+                throw new Exception("Could not find connection field in ServerGamePacketListenerImpl");
+            }
+
             return (Connection) connectionField.get(playerConnection);
-        } catch (final NoSuchFieldException | IllegalAccessException e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }

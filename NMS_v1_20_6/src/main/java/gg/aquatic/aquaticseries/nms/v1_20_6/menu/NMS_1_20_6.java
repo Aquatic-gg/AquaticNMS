@@ -9,7 +9,6 @@ import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
-import gg.aquatic.aquaticseries.nms.ProtectedPacket;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -18,6 +17,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -263,11 +263,20 @@ public class NMS_1_20_6 implements NMSAdapter {
     private Connection getConnection(final ServerGamePacketListenerImpl playerConnection) {
         try {
             if (connectionField == null) {
-                connectionField = ServerGamePacketListenerImpl.class.getDeclaredField("e");
-                connectionField.setAccessible(true);
+                for (Field declaredField : ServerCommonPacketListenerImpl.class.getDeclaredFields()) {
+                    if (declaredField.getType().equals(Connection.class)) {
+                        connectionField = declaredField;
+                        connectionField.setAccessible(true);
+                        break;
+                    }
+                }
             }
+            if (connectionField == null) {
+                throw new Exception("Could not find connection field in ServerGamePacketListenerImpl");
+            }
+
             return (Connection) connectionField.get(playerConnection);
-        } catch (final NoSuchFieldException | IllegalAccessException e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
