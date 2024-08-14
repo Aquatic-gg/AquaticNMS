@@ -4,11 +4,16 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 import com.mojang.datafixers.util.Pair;
+import gg.aquatic.aquaticseries.lib.EventExtKt;
+import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
+import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
+import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
 import gg.aquatic.aquaticseries.nms.menu.InventoryAdapterImpl;
+import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
@@ -247,6 +252,39 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
     @Override
     public void sendTitleUpdate(Player player, AquaticString aquaticString) {
+        var serverPlayer = ((CraftPlayer)player).getHandle();
+        if (serverPlayer.containerMenu == null) {
+            return;
+        }
+        var container = serverPlayer.containerMenu;
+        var containerId = container.containerId;
+        var title = serverPlayer.containerMenu.getTitle();
+
+        if (player.getOpenInventory().getTopInventory().getHolder() instanceof CustomInventory customInventory) {
+            EventExtKt.call(
+                new InventoryTitleUpdateEvent(
+                    customInventory,
+                    StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title)),
+                    aquaticString
+                )
+            );
+        }
+
+        var serializedTitle = "";
+        if (aquaticString instanceof PaperString paperString) {
+            serializedTitle = paperString.toJson();
+        } else {
+            serializedTitle = aquaticString.toString();
+        }
+
+        var packet = new ClientboundOpenScreenPacket(
+                containerId,
+                serverPlayer.containerMenu.getType(),
+                net.minecraft.network.chat.Component.Serializer.fromJson(
+                        serializedTitle
+                )
+        );
+        sendPacket(List.of(player), packet);
 
     }
 }
