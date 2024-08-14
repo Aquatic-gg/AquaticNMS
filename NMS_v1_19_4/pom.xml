@@ -3,12 +3,9 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>gg.aquatic.aquaticseries.nms</groupId>
-        <artifactId>AquaticNMS</artifactId>
-        <version>1.0.0</version>
-    </parent>
 
+    <groupId>gg.aquatic.aquaticseries.nms</groupId>
+    <version>1.0.0</version>
     <artifactId>NMS_v1_19_4</artifactId>
 
     <properties>
@@ -98,6 +95,7 @@
             <artifactId>spigot</artifactId>
             <version>1.19.4-R0.1-SNAPSHOT</version>
             <classifier>remapped-mojang</classifier>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>it.unimi.dsi</groupId>
