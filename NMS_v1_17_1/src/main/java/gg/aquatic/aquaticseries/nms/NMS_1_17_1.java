@@ -3,6 +3,7 @@ package gg.aquatic.aquaticseries.nms;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
+
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.EventExtKt;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
@@ -69,16 +70,16 @@ public final class NMS_1_17_1 implements NMSAdapter {
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
-        sendPacket(abstractAudience,entity.getAddEntityPacket());
-        sendPacket(abstractAudience, packetData);
+        sendPacket(abstractAudience, entity.getAddEntityPacket(), false);
+        sendPacket(abstractAudience, packetData, false);
 
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, ItemStack>> list = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
                 list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
-            sendPacket(abstractAudience,packet);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), list);
+            sendPacket(abstractAudience, packet, false);
         }
 
         entities.put(entity.getId(), entity);
@@ -93,7 +94,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
     @Override
     public void despawnEntity(List<Integer> list, AbstractAudience abstractAudience) {
         final var packet = new ClientboundRemoveEntitiesPacket(new IntArrayList(list));
-        sendPacket(abstractAudience, packet);
+        sendPacket(abstractAudience, packet, false);
 
     }
 
@@ -106,15 +107,15 @@ public final class NMS_1_17_1 implements NMSAdapter {
         }
 
         final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
-        sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata);
+        sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata, false);
 
         if (entity instanceof LivingEntity livingEntity) {
             final List<Pair<EquipmentSlot, ItemStack>> equipmentMap = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
+                equipmentMap.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
-            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), equipmentMap);
+            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packet, false);
         }
     }
 
@@ -122,8 +123,8 @@ public final class NMS_1_17_1 implements NMSAdapter {
     public void updateEntityVelocity(int i, Vector vector, AbstractAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         entity.getBukkitEntity().setVelocity(vector);
-        final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
-        sendPacket(abstractAudience,packet);
+        final var packet = new ClientboundSetEntityMotionPacket(i, new Vec3(vector.getX(), vector.getY(), vector.getZ()));
+        sendPacket(abstractAudience, packet, false);
     }
 
     @Override
@@ -136,7 +137,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience, packet, false);
     }
 
     @Override
@@ -150,17 +151,17 @@ public final class NMS_1_17_1 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundMoveEntityPacket.PosRot(
                 i,
-                (short)((location.getX() * 32 - prevLoc.getX() * 32) * 128),
-                (short)((location.getY() * 32 - prevLoc.getY() * 32) * 128),
-                (short)((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
+                (short) ((location.getX() * 32 - prevLoc.getX() * 32) * 128),
+                (short) ((location.getY() * 32 - prevLoc.getY() * 32) * 128),
+                (short) ((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
                 (byte) ((int) (location.getYaw() * 256.0F / 360.0F)),
                 (byte) ((int) (location.getPitch() * 256.0F / 360.0F)),
                 true
         );
 
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience, packet, false);
         sendPacket(abstractAudience,
-                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F)))
+                new ClientboundRotateHeadPacket(entities.get(i), (byte) ((int) (location.getYaw() * 256.0F / 360.0F))), false
         );
     }
 
@@ -173,28 +174,28 @@ public final class NMS_1_17_1 implements NMSAdapter {
                 entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
 
                 final var packet = new ClientboundSetCameraPacket(entity);
-                sendPacket(List.of(player),packet);
+                sendPacket(List.of(player), packet, false);
             }
             return;
         }
 
         final var packet = new ClientboundSetCameraPacket(entity);
-        sendPacket(abstractAudience,packet);
+        sendPacket(abstractAudience, packet, false);
 
     }
 
     @Override
     public void setGamemode(GameMode gameMode, Player player) {
-        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
-        sendPacket(Arrays.asList(player),packet);
+        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3), gameMode.getValue());
+        sendPacket(Arrays.asList(player), packet, false);
     }
 
     @Override
     public void setPlayerInfoGamemode(GameMode gameMode, Player player) {
-        final var playerHandle = ((CraftPlayer)player).getHandle();
+        final var playerHandle = ((CraftPlayer) player).getHandle();
 
         ClientboundPlayerInfoPacket.Action action2 = ClientboundPlayerInfoPacket.Action.valueOf("UPDATE_GAME_MODE");
-        final var packet = new ClientboundPlayerInfoPacket(action2,playerHandle);
+        final var packet = new ClientboundPlayerInfoPacket(action2, playerHandle);
 
         try {
             final Field packetsField;
@@ -209,23 +210,34 @@ public final class NMS_1_17_1 implements NMSAdapter {
                     playerHandle.listName)
             );
 
-            packetsField.set(packet,list);
-            sendPacket(Arrays.asList(player), packet);
+            packetsField.set(packet, list);
+            sendPacket(Arrays.asList(player), packet, false);
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void sendPacket(List<Player> players, Packet packet) {
+    private void sendPacket(List<Player> players, Packet packet, boolean isProtected) {
+        if (isProtected) {
+            var protectedPacket = new ProtectedPacket(packet);
+            players.forEach(player -> {
+                var craftPlayer = (org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer) player;
+                var packetListener = craftPlayer.getHandle().connection;
+                var connection = packetListener.connection;
+                var pipeline = connection.channel.pipeline();
+                pipeline.writeAndFlush(protectedPacket);
+            });
+            return;
+        }
         players.forEach(player -> {
-            ((CraftPlayer)player).getHandle().connection.send(packet);
+            ((CraftPlayer) player).getHandle().connection.send(packet);
         });
     }
 
-    private void sendPacket(AbstractAudience audience, Packet packet) {
+    private void sendPacket(AbstractAudience audience, Packet packet, boolean isProtected) {
         sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
-        ).toList(), packet);
+        ).toList(), packet, isProtected);
     }
 
     @Override
@@ -235,7 +247,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
         var containerId = container.containerId;
 
         var packet = new ClientboundContainerSetSlotPacket(containerId, container.getStateId(), i, CraftItemStack.asNMSCopy(itemStack));
-        sendPacket(List.of(player), packet);
+        sendPacket(List.of(player), packet, true);
     }
 
     @Override
@@ -252,7 +264,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
     @Override
     public void sendTitleUpdate(Player player, AquaticString aquaticString) {
-        var serverPlayer = ((CraftPlayer)player).getHandle();
+        var serverPlayer = ((CraftPlayer) player).getHandle();
         if (serverPlayer.containerMenu == null) {
             return;
         }
@@ -262,11 +274,11 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
         if (player.getOpenInventory().getTopInventory().getHolder() instanceof CustomInventory customInventory) {
             EventExtKt.call(
-                new InventoryTitleUpdateEvent(
-                    customInventory,
-                    StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title)),
-                    aquaticString
-                )
+                    new InventoryTitleUpdateEvent(
+                            customInventory,
+                            StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title)),
+                            aquaticString
+                    )
             );
         }
 
@@ -284,7 +296,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
                         serializedTitle
                 )
         );
-        sendPacket(List.of(player), packet);
+        sendPacket(List.of(player), packet, true);
 
     }
 }
