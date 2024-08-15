@@ -1,14 +1,16 @@
 package gg.aquatic.aquaticseries.nms.v1_20_6.menu;
 
 import com.mojang.datafixers.util.Pair;
-import gg.aquatic.aquaticseries.lib.EventExtKt;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
+import gg.aquatic.aquaticseries.lib.nms.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
+import gg.aquatic.aquaticseries.lib.util.EventExtKt;
+import gg.aquatic.aquaticseries.nms.v1_20_6.menu.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -325,5 +327,25 @@ public class NMS_1_20_6 implements NMSAdapter {
         );
         sendPacket(List.of(player), packet, true);
 
+    }
+
+    @Override
+    public PacketListenerAdapter packetListenerAdapter() {
+        return new PacketListenerAdapterImpl();
+    }
+
+    @Override
+    public void resendEntitySpawnPacket(Player player, int i) {
+        var entity = entities.get(i);
+        if (entity == null) {
+            return;
+        }
+        var packet = entity.getAddEntityPacket();
+        sendPacket(List.of(player), packet, true);
+
+        var data = entity.getEntityData().getNonDefaultValues();
+        if (data == null) return;
+        var dataPacket = new ClientboundSetEntityDataPacket(i, data);
+        sendPacket(List.of(player), dataPacket, true);
     }
 }

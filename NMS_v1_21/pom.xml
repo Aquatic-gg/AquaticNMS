@@ -91,7 +91,7 @@
         <dependency>
             <groupId>gg.aquatic.aquaticseries</groupId>
             <artifactId>aquaticlib</artifactId>
-            <version>1.0.1.5</version>
+            <version>1.0.2.0</version>
             <classifier>all</classifier>
             <exclusions>
                 <exclusion>

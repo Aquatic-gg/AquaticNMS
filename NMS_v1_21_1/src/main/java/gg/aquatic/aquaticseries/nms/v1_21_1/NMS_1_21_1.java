@@ -1,14 +1,16 @@
 package gg.aquatic.aquaticseries.nms.v1_21_1;
 
 import com.mojang.datafixers.util.Pair;
-import gg.aquatic.aquaticseries.lib.EventExtKt;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
+import gg.aquatic.aquaticseries.lib.nms.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
+import gg.aquatic.aquaticseries.lib.util.EventExtKt;
+import gg.aquatic.aquaticseries.nms.v1_21_1.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.nms.v1_21_1.menu.InventoryAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
@@ -347,5 +349,36 @@ public final class NMS_1_21_1 implements NMSAdapter {
         );
         sendPacket(List.of(player), packet, true);
 
+    }
+
+    @Override
+    public PacketListenerAdapter packetListenerAdapter() {
+        return new PacketListenerAdapterImpl();
+    }
+
+    @Override
+    public void resendEntitySpawnPacket(Player player, int i) {
+        var entity = entities.get(i);
+        if (entity == null) {
+            return;
+        }
+        var seenBy = new HashSet<ServerPlayerConnection>();
+        seenBy.add(((CraftPlayer)player).getHandle().connection);
+        var tracker = new ServerEntity(
+                ((CraftWorld) player.getLocation().getWorld()).getHandle(),
+                entity,
+                entity.getType().updateInterval(),
+                true,
+                packet -> {
+                },
+                seenBy
+        );
+        var packet = entity.getAddEntityPacket(tracker);
+        sendPacket(List.of(player), packet, true);
+
+        var data = entity.getEntityData().getNonDefaultValues();
+        if (data == null) return;
+        var dataPacket = new ClientboundSetEntityDataPacket(i, data);
+        sendPacket(List.of(player), dataPacket, true);
     }
 }

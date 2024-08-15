@@ -5,14 +5,16 @@ import java.util.*;
 import java.util.function.Consumer;
 
 import com.mojang.datafixers.util.Pair;
-import gg.aquatic.aquaticseries.lib.EventExtKt;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
+import gg.aquatic.aquaticseries.lib.nms.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
+import gg.aquatic.aquaticseries.lib.util.EventExtKt;
+import gg.aquatic.aquaticseries.nms.v1_17_1.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.nms.v1_17_1.menu.InventoryAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
@@ -305,6 +307,25 @@ public final class NMS_1_17_1 implements NMSAdapter {
         );
         sendPacket(List.of(player), packet, true);
 
+    }
+
+    @Override
+    public PacketListenerAdapter packetListenerAdapter() {
+        return new PacketListenerAdapterImpl();
+    }
+
+    @Override
+    public void resendEntitySpawnPacket(Player player, int i) {
+        var entity = entities.get(i);
+        if (entity == null) {
+            return;
+        }
+        var packet = entity.getAddEntityPacket();
+        sendPacket(List.of(player), packet, true);
+
+        var data = entity.getEntityData();
+        var dataPacket = new ClientboundSetEntityDataPacket(i, data, true);
+        sendPacket(List.of(player), dataPacket, true);
     }
 }
 
