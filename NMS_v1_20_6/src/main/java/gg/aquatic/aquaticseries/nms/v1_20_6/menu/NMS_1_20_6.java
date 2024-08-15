@@ -198,7 +198,7 @@ public class NMS_1_20_6 implements NMSAdapter {
 
         try {
             final Field packetsField;
-            packetsField = packet.getClass().getDeclaredField("b");
+            packetsField = packet.getClass().getDeclaredField("c");
             packetsField.setAccessible(true);
 
             List<ClientboundPlayerInfoUpdatePacket.Entry> list = new ArrayList<>();
