@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>gg.aquatic.aquaticseries.nms</groupId>
-    <version>1.0.12</version>
+    <version>1.0.13</version>
     <artifactId>NMS_v1_19_4</artifactId>
 
     <properties>

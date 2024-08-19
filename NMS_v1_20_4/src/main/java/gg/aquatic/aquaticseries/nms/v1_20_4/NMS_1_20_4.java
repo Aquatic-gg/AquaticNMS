@@ -242,7 +242,7 @@ public class NMS_1_20_4 implements NMSAdapter {
 
     private void sendPacket(AbstractAudience audience, Packet packet, boolean isProtected) {
         sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
-        ).toList(), packet, isProtected);
+        ).filter(Objects::nonNull).toList(), packet, isProtected);
     }
 
     @Override
