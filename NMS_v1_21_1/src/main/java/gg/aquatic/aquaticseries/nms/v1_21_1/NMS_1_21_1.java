@@ -5,13 +5,11 @@ import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
-import gg.aquatic.aquaticseries.lib.nms.InventoryAdapter;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
-import gg.aquatic.aquaticseries.lib.nms.PacketListenerAdapter;
+import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_21_1.listener.PacketListenerAdapterImpl;
-import gg.aquatic.aquaticseries.nms.v1_21_1.menu.InventoryAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -301,13 +299,6 @@ public final class NMS_1_21_1 implements NMSAdapter {
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private final InventoryAdapterImpl inventoryAdapter = new InventoryAdapterImpl();
-
-    @Override
-    public @Nonnull InventoryAdapter inventoryAdapter() {
-        return inventoryAdapter;
     }
 
     public void sendTitleUpdate(Player player, AquaticString aquaticString) {
