@@ -345,10 +345,11 @@ public class NMS_1_21 implements NMSAdapter {
         sendPacket(List.of(player), packet, true);
 
     }
+    private PacketListenerAdapterImpl packetListenerAdapter = new PacketListenerAdapterImpl();
 
     @Override
     public PacketListenerAdapter packetListenerAdapter() {
-        return new PacketListenerAdapterImpl();
+        return packetListenerAdapter;
     }
 
     @Override

@@ -27,7 +27,7 @@ public class PacketListenerAdapterImpl implements PacketListenerAdapter {
 
         var connection = getConnection(packetListener.connection);
         var pipeline = connection.channel.pipeline();
-        var listener = new AquaticPacketListener(player);
+        var listener = new AquaticPacketListener(player,this);
         for (String ignored : pipeline.toMap().keySet()) {
             pipeline.addBefore("packet_handler", "AquaticPacketListener" + uuid.toString(), listener);
             break;

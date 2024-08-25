@@ -321,9 +321,11 @@ public class NMS_1_20_4 implements NMSAdapter {
 
     }
 
+    private PacketListenerAdapterImpl packetListenerAdapter = new PacketListenerAdapterImpl();
+
     @Override
     public PacketListenerAdapter packetListenerAdapter() {
-        return new PacketListenerAdapterImpl();
+        return packetListenerAdapter;
     }
 
     @Override
