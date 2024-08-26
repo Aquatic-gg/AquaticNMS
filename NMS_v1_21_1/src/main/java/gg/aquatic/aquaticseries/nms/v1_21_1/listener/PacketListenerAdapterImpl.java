@@ -6,6 +6,7 @@ import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.nms.v1_21_1.NMS_1_21_1;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -20,6 +21,14 @@ import java.util.UUID;
 public class PacketListenerAdapterImpl implements PacketListenerAdapter {
     private UUID uuid = UUID.randomUUID();
     private List<AbstractPacketListener> listeners = new ArrayList<>();
+
+    private NMS_1_21_1 nms;
+    public PacketListenerAdapterImpl(NMS_1_21_1 nms) {
+        this.nms = nms;
+    }
+    public NMS_1_21_1 getNms() {
+        return nms;
+    }
 
     @Override
     public void inject(Player player) {

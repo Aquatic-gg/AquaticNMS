@@ -6,6 +6,7 @@ import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.nms.v1_19_4.NMS_1_19_4;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
@@ -19,7 +20,13 @@ import java.util.UUID;
 public class PacketListenerAdapterImpl implements PacketListenerAdapter {
     private UUID uuid = UUID.randomUUID();
     private List<AbstractPacketListener> listeners = new ArrayList<>();
-
+    private NMS_1_19_4 nms;
+    public PacketListenerAdapterImpl(NMS_1_19_4 nms) {
+        this.nms = nms;
+    }
+    public NMS_1_19_4 getNms() {
+        return nms;
+    }
     @Override
     public void inject(Player player) {
         var craftPlayer = (CraftPlayer) player;

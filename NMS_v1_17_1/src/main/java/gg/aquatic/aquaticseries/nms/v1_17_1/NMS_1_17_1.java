@@ -298,7 +298,7 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
     }
 
-    private PacketListenerAdapterImpl packetListenerAdapter = new PacketListenerAdapterImpl();
+    private PacketListenerAdapterImpl packetListenerAdapter = new PacketListenerAdapterImpl(this);
 
     @Override
     public PacketListenerAdapter packetListenerAdapter() {

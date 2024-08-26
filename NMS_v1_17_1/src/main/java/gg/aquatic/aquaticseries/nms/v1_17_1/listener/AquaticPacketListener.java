@@ -27,6 +27,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.lang.reflect.Field;
+
 public class AquaticPacketListener extends ChannelDuplexHandler {
 
     private final Player player;
@@ -167,8 +169,19 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         @Override
                         public void onInteraction(InteractionHand interactionHand) {
                             Action action = Action.RIGHT_CLICK_AIR;
-                            var event = new NMSEntityInteractEvent(player, packet.getTarget(((CraftWorld) player.getLocation().getWorld()).getHandle()).getId(), action);
-                            EventExtKt.call(event);
+                            for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                                if (declaredField.getType() == int.class) {
+                                    declaredField.setAccessible(true);
+                                    try {
+                                        var id =(int) declaredField.get(packet);
+                                        if (packetListenerAdapter.getNms().getEntity(id) == null) return;
+                                        var event = new NMSEntityInteractEvent(player,id,action);
+                                        EventExtKt.call(event);
+                                    } catch (IllegalAccessException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
                         }
 
                         @Override
@@ -179,8 +192,19 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         @Override
                         public void onAttack() {
                             Action action = Action.LEFT_CLICK_AIR;
-                            var event = new NMSEntityInteractEvent(player, packet.getTarget(((CraftWorld) player.getLocation().getWorld()).getHandle()).getId(), action);
-                            EventExtKt.call(event);
+                            for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                                if (declaredField.getType() == int.class) {
+                                    declaredField.setAccessible(true);
+                                    try {
+                                        var id =(int) declaredField.get(packet);
+                                        if (packetListenerAdapter.getNms().getEntity(id) == null) return;
+                                        var event = new NMSEntityInteractEvent(player,id,action);
+                                        EventExtKt.call(event);
+                                    } catch (IllegalAccessException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
                         }
                     });
 
