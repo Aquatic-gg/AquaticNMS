@@ -89,7 +89,9 @@ public final class NMS_1_17_1 implements NMSAdapter {
 
     @Override
     public Entity getEntity(int i) {
-        return entities.get(i).getBukkitEntity();
+        var entity = entities.get(i);
+        if (entity == null) return null;
+        return entity.getBukkitEntity();
     }
 
     @Override
