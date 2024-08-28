@@ -12,12 +12,14 @@ import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_20_4.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.*;
@@ -29,9 +31,11 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftTextDisplay;
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftChatMessage;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Field;
@@ -66,9 +70,29 @@ public class NMS_1_20_4 implements NMSAdapter {
             consumer.accept(entity.getBukkitEntity());
         }
 
-        final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
+        System.out.println("Showing entity with display name: "+entity.getBukkitEntity().getCustomName());
+
+        //final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),Objects.requireNonNullElse(entity.getEntityData().getNonDefaultValues(), new LinkedList<>()));
         sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
-        sendPacket(abstractAudience, packetData, true);
+        try {
+            var field = SynchedEntityData.class.getDeclaredField("e");
+            field.setAccessible(true);
+            var data = (Int2ObjectMap<SynchedEntityData.DataItem<?>>)field.get(entity.getEntityData());
+            if (data != null) {
+                var values = new ArrayList<SynchedEntityData.DataValue<?>>();
+                data.forEach((key, value) -> {
+                    values.add(value.value());
+                });
+                final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
+                if (entity instanceof Display.TextDisplay textDisplay) {
+                    System.out.println("Showing display entity with text: "+ CraftChatMessage.toJSON(textDisplay.getText()));
+                }
+
+                sendPacket(abstractAudience, packetData, true);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
@@ -105,7 +129,9 @@ public class NMS_1_20_4 implements NMSAdapter {
             consumer.accept(entity.getBukkitEntity());
         }
 
-        final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData().getNonDefaultValues());
+        System.out.println("Showing entity with display name: "+entity.getBukkitEntity().getCustomName());
+
+        final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), Objects.requireNonNullElse(entity.getEntityData().getNonDefaultValues(), new LinkedList<>()));
         sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata, true);
 
         if (entity instanceof LivingEntity livingEntity) {
@@ -339,9 +365,7 @@ public class NMS_1_20_4 implements NMSAdapter {
         var packet = entity.getAddEntityPacket();
         sendPacket(List.of(player), packet, true);
 
-        var data = entity.getEntityData().getNonDefaultValues();
-        if (data == null) return;
-        var dataPacket = new ClientboundSetEntityDataPacket(i, data);
+        var dataPacket = new ClientboundSetEntityDataPacket(i, Objects.requireNonNullElse(entity.getEntityData().getNonDefaultValues(), new LinkedList<>()));
         sendPacket(List.of(player), dataPacket, true);
     }
 }
