@@ -3,11 +3,11 @@ package gg.aquatic.aquaticseries.nms.v1_21;
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
+import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
 import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
 import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
-import gg.aquatic.aquaticseries.lib.util.AbstractAudience;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_21.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
@@ -39,7 +39,6 @@ import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
@@ -49,7 +48,7 @@ public class NMS_1_21 implements NMSAdapter {
     private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
 
     @Override
-    public int spawnEntity(Location location, String s, AbstractAudience abstractAudience, Consumer<org.bukkit.entity.Entity> consumer) {
+    public int spawnEntity(Location location, String s, AquaticAudience abstractAudience, Consumer<org.bukkit.entity.Entity> consumer) {
         final var entityOpt = EntityType.byString(s.toLowerCase());
         if (entityOpt.isEmpty()) {
             return -1;
@@ -77,7 +76,7 @@ public class NMS_1_21 implements NMSAdapter {
 
 
         var seenBy = new HashSet<ServerPlayerConnection>();
-        for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
+        for (UUID uuid : abstractAudience.getUuids()) {
             Player player = Bukkit.getPlayer(uuid);
             seenBy.add(((CraftPlayer)player).getHandle().connection);
         }
@@ -116,14 +115,14 @@ public class NMS_1_21 implements NMSAdapter {
     }
 
     @Override
-    public void despawnEntity(List<Integer> list, AbstractAudience abstractAudience) {
+    public void despawnEntity(List<Integer> list, AquaticAudience abstractAudience) {
         final var packet = new ClientboundRemoveEntitiesPacket(new IntArrayList(list));
         sendPacket(abstractAudience, packet, true);
 
     }
 
     @Override
-    public void updateEntity(int i, Consumer<org.bukkit.entity.Entity> consumer, AbstractAudience abstractAudience) {
+    public void updateEntity(int i, Consumer<org.bukkit.entity.Entity> consumer, AquaticAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
 
         if (consumer != null) {
@@ -144,7 +143,7 @@ public class NMS_1_21 implements NMSAdapter {
     }
 
     @Override
-    public void updateEntityVelocity(int i, Vector vector, AbstractAudience abstractAudience) {
+    public void updateEntityVelocity(int i, Vector vector, AquaticAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         entity.getBukkitEntity().setVelocity(vector);
         final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
@@ -153,7 +152,7 @@ public class NMS_1_21 implements NMSAdapter {
 
 
     @Override
-    public void teleportEntity(int i, Location location, AbstractAudience abstractAudience) {
+    public void teleportEntity(int i, Location location, AquaticAudience abstractAudience) {
         if (!entities.containsKey(i)) {
             return;
         }
@@ -166,7 +165,7 @@ public class NMS_1_21 implements NMSAdapter {
     }
 
     @Override
-    public void moveEntity(int i, Location location, AbstractAudience abstractAudience) {
+    public void moveEntity(int i, Location location, AquaticAudience abstractAudience) {
         if (!entities.containsKey(i)) {
             return;
         }
@@ -191,10 +190,10 @@ public class NMS_1_21 implements NMSAdapter {
     }
 
     @Override
-    public void setSpectatorTarget(int i, AbstractAudience abstractAudience) {
+    public void setSpectatorTarget(int i, AquaticAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         if (entity == null) {
-            for (UUID uuid : abstractAudience.getCurrentlyViewing()) {
+            for (UUID uuid : abstractAudience.getUuids()) {
                 Player player = Bukkit.getPlayer(uuid);
                 entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
 
@@ -264,8 +263,8 @@ public class NMS_1_21 implements NMSAdapter {
         });
     }
 
-    private void sendPacket(AbstractAudience audience, Packet packet, boolean isProtected) {
-        sendPacket(audience.getCurrentlyViewing().stream().map(Bukkit::getPlayer
+    private void sendPacket(AquaticAudience audience, Packet packet, boolean isProtected) {
+        sendPacket(audience.getUuids().stream().map(Bukkit::getPlayer
         ).filter(Objects::nonNull).toList(), packet, isProtected);
     }
 
@@ -280,7 +279,7 @@ public class NMS_1_21 implements NMSAdapter {
     }
 
     @Override
-    public void setInventoryContent(AbstractAudience abstractAudience, InventoryType inventoryType, Collection<? extends org.bukkit.inventory.ItemStack> collection, org.bukkit.inventory.ItemStack itemStack) {
+    public void setInventoryContent(AquaticAudience abstractAudience, InventoryType inventoryType, Collection<? extends org.bukkit.inventory.ItemStack> collection, org.bukkit.inventory.ItemStack itemStack) {
 
     }
 
