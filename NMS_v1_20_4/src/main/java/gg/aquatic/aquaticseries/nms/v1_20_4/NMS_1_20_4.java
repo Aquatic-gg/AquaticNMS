@@ -123,8 +123,6 @@ public class NMS_1_20_4 implements NMSAdapter {
             consumer.accept(entity.getBukkitEntity());
         }
 
-        System.out.println("Showing entity with display name: "+entity.getBukkitEntity().getCustomName());
-
         final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), Objects.requireNonNullElse(entity.getEntityData().getNonDefaultValues(), new LinkedList<>()));
         sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packetMetadata, true);
 
