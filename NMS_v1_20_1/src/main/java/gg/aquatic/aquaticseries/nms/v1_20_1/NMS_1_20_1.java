@@ -1,4 +1,4 @@
-package gg.aquatic.aquaticseries.nms.v1_21;
+package gg.aquatic.aquaticseries.nms.v1_20_1;
 
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
@@ -9,9 +9,10 @@ import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
-import gg.aquatic.aquaticseries.nms.v1_21.listener.PacketListenerAdapterImpl;
+import gg.aquatic.aquaticseries.nms.v1_20_1.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
@@ -19,24 +20,20 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerEntity;
-import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R1.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -44,7 +41,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class NMS_1_21 implements NMSAdapter {
+public class NMS_1_20_1 implements NMSAdapter {
 
     private final Map<Integer, net.minecraft.world.entity.Entity> entities = new HashMap<>();
 
@@ -55,10 +52,10 @@ public class NMS_1_21 implements NMSAdapter {
             return -1;
         }
 
-        final var worldServer = ((CraftWorld)location.getWorld()).getHandle();
-
+        final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
         final var entity = entityOpt.get().create(
                 worldServer,
+                null,
                 null,
                 new BlockPos((int) location.toVector().getX(), (int) location.toVector().getY(), (int) location.toVector().getZ()),
                 MobSpawnType.COMMAND,
@@ -66,40 +63,23 @@ public class NMS_1_21 implements NMSAdapter {
                 false
         );
 
-        entity.absMoveTo(location.getX(),location.getY(),location.getZ(),location.getYaw(),location.getPitch());
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
         if (consumer != null) {
             consumer.accept(entity.getBukkitEntity());
         }
 
         //final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
-        var seenBy = new HashSet<ServerPlayerConnection>();
-        for (UUID uuid : abstractAudience.getUuids()) {
-            Player player = Bukkit.getPlayer(uuid);
-            seenBy.add(((CraftPlayer)player).getHandle().connection);
-        }
-
-        var tracker = new ServerEntity(
-                ((CraftWorld) location.getWorld()).getHandle(),
-                entity,
-                entity.getType().updateInterval(),
-                true,
-                packet -> {
-                },
-                seenBy
-        );
-
-        sendPacket(abstractAudience,entity.getAddEntityPacket(tracker), true);
-
+        sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
         try {
             var field = SynchedEntityData.class.getDeclaredField("e");
             field.setAccessible(true);
-            var data = (SynchedEntityData.DataItem<?>[])field.get(entity.getEntityData());
+            var data = (Int2ObjectMap<SynchedEntityData.DataItem<?>>)field.get(entity.getEntityData());
             if (data != null) {
                 var values = new ArrayList<SynchedEntityData.DataValue<?>>();
-                for (SynchedEntityData.DataItem<?> dat : data) {
-                    values.add(dat.value());
-                }
+                data.forEach((key, value) -> {
+                    values.add(value.value());
+                });
                 final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
                 sendPacket(abstractAudience, packetData, true);
             }
@@ -108,15 +88,15 @@ public class NMS_1_21 implements NMSAdapter {
         }
 
         if (entity instanceof LivingEntity livingEntity) {
-            List<Pair<EquipmentSlot, ItemStack>> list = new ArrayList<>();
+            List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                list.add(Pair.of(value,livingEntity.getItemBySlot(value)));
+                list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
             final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
             sendPacket(abstractAudience,packet, true);
         }
 
-        entities.put(entity.getId(),entity);
+        entities.put(entity.getId(), entity);
         return entity.getId();
     }
 
@@ -162,7 +142,6 @@ public class NMS_1_21 implements NMSAdapter {
         final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
         sendPacket(abstractAudience,packet, true);
     }
-
 
     @Override
     public void teleportEntity(int i, Location location, AquaticAudience abstractAudience) {
@@ -236,7 +215,7 @@ public class NMS_1_21 implements NMSAdapter {
 
         try {
             final Field packetsField;
-            packetsField = packet.getClass().getDeclaredField("c");
+            packetsField = packet.getClass().getDeclaredField("b");
             packetsField.setAccessible(true);
 
             List<ClientboundPlayerInfoUpdatePacket.Entry> list = new ArrayList<>();
@@ -244,7 +223,7 @@ public class NMS_1_21 implements NMSAdapter {
                             playerHandle.getUUID(),
                             playerHandle.getGameProfile(),
                             true,
-                            player.getPing(),
+                            playerHandle.latency,
                             GameType.valueOf(gameMode.toString().toUpperCase()),
                             playerHandle.listName,
                             null
@@ -301,7 +280,7 @@ public class NMS_1_21 implements NMSAdapter {
     private Connection getConnection(final ServerGamePacketListenerImpl playerConnection) {
         try {
             if (connectionField == null) {
-                for (Field declaredField : ServerCommonPacketListenerImpl.class.getDeclaredFields()) {
+                for (Field declaredField : ServerGamePacketListenerImpl.class.getDeclaredFields()) {
                     if (declaredField.getType().equals(Connection.class)) {
                         connectionField = declaredField;
                         connectionField.setAccessible(true);
@@ -332,7 +311,7 @@ public class NMS_1_21 implements NMSAdapter {
             EventExtKt.call(
                     new InventoryTitleUpdateEvent(
                             customInventory,
-                            StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title, ((CraftPlayer) player).getHandle().registryAccess())),
+                            StringExtKt.toAquatic(Component.Serializer.toJson(title)),
                             aquaticString
                     )
             );
@@ -340,8 +319,8 @@ public class NMS_1_21 implements NMSAdapter {
 
         Component serializedTitle = null;
         if (aquaticString instanceof PaperString paperString) {
-            serializedTitle = net.minecraft.network.chat.Component.Serializer.fromJson(
-                    paperString.toJson(),((CraftPlayer) player).getHandle().registryAccess()
+            serializedTitle = Component.Serializer.fromJson(
+                    paperString.toJson()
             );
         } else if (aquaticString instanceof SpigotString spigotString) {
             serializedTitle = CraftChatMessage.fromJSONOrString(spigotString.getFormatted());
@@ -372,18 +351,7 @@ public class NMS_1_21 implements NMSAdapter {
         if (entity == null) {
             return;
         }
-        var seenBy = new HashSet<ServerPlayerConnection>();
-        seenBy.add(((CraftPlayer)player).getHandle().connection);
-        var tracker = new ServerEntity(
-                ((CraftWorld) player.getLocation().getWorld()).getHandle(),
-                entity,
-                entity.getType().updateInterval(),
-                true,
-                packet -> {
-                },
-                seenBy
-        );
-        var packet = entity.getAddEntityPacket(tracker);
+        var packet = entity.getAddEntityPacket();
         sendPacket(List.of(player), packet, true);
 
         var data = entity.getEntityData().getNonDefaultValues();

@@ -12,18 +12,17 @@ import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_20_6.menu.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
@@ -67,9 +66,24 @@ public class NMS_1_20_6 implements NMSAdapter {
             consumer.accept(entity.getBukkitEntity());
         }
 
-        final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
+        //final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
         sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
-        sendPacket(abstractAudience, packetData, true);
+        //sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
+        try {
+            var field = SynchedEntityData.class.getDeclaredField("e");
+            field.setAccessible(true);
+            var data = (SynchedEntityData.DataItem<?>[])field.get(entity.getEntityData());
+            if (data != null) {
+                var values = new ArrayList<SynchedEntityData.DataValue<?>>();
+                for (SynchedEntityData.DataItem<?> dat : data) {
+                    values.add(dat.value());
+                }
+                final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
+                sendPacket(abstractAudience, packetData, true);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();

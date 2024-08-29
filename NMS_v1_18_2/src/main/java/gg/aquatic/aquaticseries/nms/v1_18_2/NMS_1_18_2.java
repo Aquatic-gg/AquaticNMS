@@ -32,7 +32,6 @@ import org.bukkit.craftbukkit.v1_18_R2.util.CraftVector;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;

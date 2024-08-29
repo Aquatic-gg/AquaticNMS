@@ -18,6 +18,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -66,11 +67,6 @@ public final class NMS_1_21_1 implements NMSAdapter {
         if (consumer != null) {
             consumer.accept(entity.getBukkitEntity());
         }
-
-        final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),entity.getEntityData().getNonDefaultValues());
-
-
-
         var seenBy = new HashSet<ServerPlayerConnection>();
         for (UUID uuid : abstractAudience.getUuids()) {
             Player player = Bukkit.getPlayer(uuid);
@@ -88,7 +84,21 @@ public final class NMS_1_21_1 implements NMSAdapter {
         );
 
         sendPacket(abstractAudience,entity.getAddEntityPacket(tracker), true);
-        sendPacket(abstractAudience,packetData, true);
+        try {
+            var field = SynchedEntityData.class.getDeclaredField("e");
+            field.setAccessible(true);
+            var data = (SynchedEntityData.DataItem<?>[])field.get(entity.getEntityData());
+            if (data != null) {
+                var values = new ArrayList<SynchedEntityData.DataValue<?>>();
+                for (SynchedEntityData.DataItem<?> dat : data) {
+                    values.add(dat.value());
+                }
+                final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
+                sendPacket(abstractAudience, packetData, true);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();

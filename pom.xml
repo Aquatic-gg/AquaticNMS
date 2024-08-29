@@ -16,6 +16,7 @@
         <module>NMS_v1_20_6</module>
         <module>NMS_v1_21</module>
         <module>NMS_v1_21_1</module>
+        <module>NMS_v1_20_1</module>
     </modules>
 
     <properties>

@@ -70,8 +70,6 @@ public class NMS_1_20_4 implements NMSAdapter {
             consumer.accept(entity.getBukkitEntity());
         }
 
-        System.out.println("Showing entity with display name: "+entity.getBukkitEntity().getCustomName());
-
         //final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),Objects.requireNonNullElse(entity.getEntityData().getNonDefaultValues(), new LinkedList<>()));
         sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
         try {
@@ -84,10 +82,6 @@ public class NMS_1_20_4 implements NMSAdapter {
                     values.add(value.value());
                 });
                 final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
-                if (entity instanceof Display.TextDisplay textDisplay) {
-                    System.out.println("Showing display entity with text: "+ CraftChatMessage.toJSON(textDisplay.getText()));
-                }
-
                 sendPacket(abstractAudience, packetData, true);
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
