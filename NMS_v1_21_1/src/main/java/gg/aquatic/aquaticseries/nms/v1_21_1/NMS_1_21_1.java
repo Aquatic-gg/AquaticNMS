@@ -1,25 +1,29 @@
 package gg.aquatic.aquaticseries.nms.v1_21_1;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
-import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
-import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_21_1.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
+import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.network.ServerPlayerConnection;
@@ -51,7 +55,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
             return -1;
         }
 
-        final var worldServer = ((CraftWorld)location.getWorld()).getHandle();
+        final var worldServer = ((CraftWorld) location.getWorld()).getHandle();
 
         final var entity = entityOpt.get().create(
                 worldServer,
@@ -62,7 +66,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
                 false
         );
 
-        entity.absMoveTo(location.getX(),location.getY(),location.getZ(),location.getYaw(),location.getPitch());
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
         if (consumer != null) {
             consumer.accept(entity.getBukkitEntity());
@@ -70,7 +74,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
         var seenBy = new HashSet<ServerPlayerConnection>();
         for (UUID uuid : abstractAudience.getUuids()) {
             Player player = Bukkit.getPlayer(uuid);
-            seenBy.add(((CraftPlayer)player).getHandle().connection);
+            seenBy.add(((CraftPlayer) player).getHandle().connection);
         }
 
         var tracker = new ServerEntity(
@@ -83,17 +87,17 @@ public final class NMS_1_21_1 implements NMSAdapter {
                 seenBy
         );
 
-        sendPacket(abstractAudience,entity.getAddEntityPacket(tracker), true);
+        sendPacket(abstractAudience, entity.getAddEntityPacket(tracker), true);
         try {
             var field = SynchedEntityData.class.getDeclaredField("e");
             field.setAccessible(true);
-            var data = (SynchedEntityData.DataItem<?>[])field.get(entity.getEntityData());
+            var data = (SynchedEntityData.DataItem<?>[]) field.get(entity.getEntityData());
             if (data != null) {
                 var values = new ArrayList<SynchedEntityData.DataValue<?>>();
                 for (SynchedEntityData.DataItem<?> dat : data) {
                     values.add(dat.value());
                 }
-                final var packetData = new ClientboundSetEntityDataPacket(entity.getId(),values);
+                final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), values);
                 sendPacket(abstractAudience, packetData, true);
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -103,14 +107,42 @@ public final class NMS_1_21_1 implements NMSAdapter {
         if (entity instanceof LivingEntity livingEntity) {
             List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                list.add(Pair.of(value,livingEntity.getItemBySlot(value)));
+                list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
-            sendPacket(abstractAudience,packet, true);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), list);
+            sendPacket(abstractAudience, packet, true);
         }
 
-        entities.put(entity.getId(),entity);
+        entities.put(entity.getId(), entity);
         return entity.getId();
+    }
+
+    @Override
+    public void addTabCompletion(List<? extends Player> players, List<String> list) {
+        var entries = new ArrayList<ClientboundPlayerInfoUpdatePacket.Entry>();
+        for (String s : list) {
+            var uuid = UUID.randomUUID();
+            var gameProfile = new GameProfile(uuid, s);
+            var entry = new ClientboundPlayerInfoUpdatePacket.Entry(uuid, gameProfile, true, 0, GameType.CREATIVE, null, null);
+            entries.add(entry);
+        }
+        var actions = EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER);
+        var packet = new ClientboundPlayerInfoUpdatePacket(actions,new ArrayList<>());
+        Field entriesField = null;
+        for (Field declaredField : packet.getClass().getDeclaredFields()) {
+            if (declaredField.getType().equals(List.class)) {
+                entriesField = declaredField;
+                break;
+            }
+        }
+        if (entriesField == null) return;
+        entriesField.setAccessible(true);
+        try {
+            entriesField.set(packet, entries);
+            sendPacket((List<Player>) players, packet, false);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -141,10 +173,10 @@ public final class NMS_1_21_1 implements NMSAdapter {
         if (entity instanceof LivingEntity livingEntity) {
             final List<Pair<EquipmentSlot, net.minecraft.world.item.ItemStack>> equipmentMap = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
+                equipmentMap.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
-            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet, true);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), equipmentMap);
+            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packet, true);
         }
     }
 
@@ -152,8 +184,8 @@ public final class NMS_1_21_1 implements NMSAdapter {
     public void updateEntityVelocity(int i, Vector vector, AquaticAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         entity.getBukkitEntity().setVelocity(vector);
-        final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
-        sendPacket(abstractAudience,packet, true);
+        final var packet = new ClientboundSetEntityMotionPacket(i, new Vec3(vector.getX(), vector.getY(), vector.getZ()));
+        sendPacket(abstractAudience, packet, true);
     }
 
 
@@ -167,7 +199,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
     }
 
     @Override
@@ -181,17 +213,17 @@ public final class NMS_1_21_1 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundMoveEntityPacket.PosRot(
                 i,
-                (short)((location.getX() * 32 - prevLoc.getX() * 32) * 128),
-                (short)((location.getY() * 32 - prevLoc.getY() * 32) * 128),
-                (short)((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
+                (short) ((location.getX() * 32 - prevLoc.getX() * 32) * 128),
+                (short) ((location.getY() * 32 - prevLoc.getY() * 32) * 128),
+                (short) ((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
                 (byte) ((int) (location.getYaw() * 256.0F / 360.0F)),
                 (byte) ((int) (location.getPitch() * 256.0F / 360.0F)),
                 true
         );
 
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
         sendPacket(abstractAudience,
-                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F))), true
+                new ClientboundRotateHeadPacket(entities.get(i), (byte) ((int) (location.getYaw() * 256.0F / 360.0F))), true
         );
     }
 
@@ -204,28 +236,28 @@ public final class NMS_1_21_1 implements NMSAdapter {
                 entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
 
                 final var packet = new ClientboundSetCameraPacket(entity);
-                sendPacket(List.of(player),packet, true);
+                sendPacket(List.of(player), packet, true);
             }
             return;
         }
 
         final var packet = new ClientboundSetCameraPacket(entity);
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
 
     }
 
     @Override
     public void setGamemode(GameMode gameMode, Player player) {
-        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
-        sendPacket(Arrays.asList(player),packet, true);
+        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3), gameMode.getValue());
+        sendPacket(Arrays.asList(player), packet, true);
     }
 
     @Override
     public void setPlayerInfoGamemode(GameMode gameMode, Player player) {
-        final var playerHandle = ((CraftPlayer)player).getHandle();
+        final var playerHandle = ((CraftPlayer) player).getHandle();
 
         ClientboundPlayerInfoUpdatePacket.Action action2 = ClientboundPlayerInfoUpdatePacket.Action.valueOf("UPDATE_GAME_MODE");
-        final var packet = new ClientboundPlayerInfoUpdatePacket(action2,playerHandle);
+        final var packet = new ClientboundPlayerInfoUpdatePacket(action2, playerHandle);
 
         try {
             final Field packetsField;
@@ -244,7 +276,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
                     )
             );
 
-            packetsField.set(packet,list);
+            packetsField.set(packet, list);
             sendPacket(Arrays.asList(player), packet, true);
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -321,16 +353,6 @@ public final class NMS_1_21_1 implements NMSAdapter {
         var containerId = container.containerId;
         var title = serverPlayer.containerMenu.getTitle();
 
-        if (player.getOpenInventory().getTopInventory().getHolder() instanceof CustomInventory customInventory) {
-            EventExtKt.call(
-                    new InventoryTitleUpdateEvent(
-                            customInventory,
-                            StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title, ((CraftPlayer) player).getHandle().registryAccess())),
-                            aquaticString
-                    )
-            );
-        }
-
         Component serializedTitle = null;
         if (aquaticString instanceof PaperString paperString) {
             serializedTitle = net.minecraft.network.chat.Component.Serializer.fromJson(
@@ -367,7 +389,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
             return;
         }
         var seenBy = new HashSet<ServerPlayerConnection>();
-        seenBy.add(((CraftPlayer)player).getHandle().connection);
+        seenBy.add(((CraftPlayer) player).getHandle().connection);
         var tracker = new ServerEntity(
                 ((CraftWorld) player.getLocation().getWorld()).getHandle(),
                 entity,

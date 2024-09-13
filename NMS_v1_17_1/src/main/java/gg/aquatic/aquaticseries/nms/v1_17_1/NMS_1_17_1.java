@@ -4,12 +4,11 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.StringExtKt;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
-import gg.aquatic.aquaticseries.lib.inventory.lib.event.InventoryTitleUpdateEvent;
-import gg.aquatic.aquaticseries.lib.inventory.lib.inventory.CustomInventory;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
@@ -268,16 +267,6 @@ public final class NMS_1_17_1 implements NMSAdapter {
         var containerId = container.containerId;
         var title = serverPlayer.containerMenu.getTitle();
 
-        if (player.getOpenInventory().getTopInventory().getHolder() instanceof CustomInventory customInventory) {
-            EventExtKt.call(
-                    new InventoryTitleUpdateEvent(
-                            customInventory,
-                            StringExtKt.toAquatic(net.minecraft.network.chat.Component.Serializer.toJson(title)),
-                            aquaticString
-                    )
-            );
-        }
-
         Component serializedTitle = null;
         if (aquaticString instanceof PaperString paperString) {
             serializedTitle = net.minecraft.network.chat.Component.Serializer.fromJson(
@@ -298,6 +287,33 @@ public final class NMS_1_17_1 implements NMSAdapter {
         );
         sendPacket(List.of(player), packet, true);
 
+    }
+
+    @Override
+    public void addTabCompletion(List<? extends Player> players, List<String> list) {
+        var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
+        for (String s : list) {
+            var uuid = UUID.randomUUID();
+            var gameProfile = new GameProfile(uuid, s);
+            var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
+            entries.add(entry);
+        }
+        var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER,new ArrayList<>());
+        Field entriesField = null;
+        for (Field declaredField : packet.getClass().getDeclaredFields()) {
+            if (declaredField.getType().equals(List.class)) {
+                entriesField = declaredField;
+                break;
+            }
+        }
+        if (entriesField == null) return;
+        entriesField.setAccessible(true);
+        try {
+            entriesField.set(packet, entries);
+            sendPacket((List<Player>) players, packet, false);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private PacketListenerAdapterImpl packetListenerAdapter = new PacketListenerAdapterImpl(this);
