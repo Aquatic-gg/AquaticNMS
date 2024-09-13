@@ -7,6 +7,7 @@ import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.lib.nms.packet.WrappedPacket;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_17_1.ProtectedPacket;
 import io.netty.channel.ChannelDuplexHandler;
@@ -27,7 +28,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.function.Function;
 
 public class AquaticPacketListener extends ChannelDuplexHandler {
 
@@ -160,9 +163,20 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
             return;
         }
 
-
-
         super.write(ctx, pkt, promise);
+    }
+
+    private <T, D extends WrappedPacket> @Nullable T handlePacket(T packet, Function<T, D> transform, Function<D, T> reverse) {
+
+        var event = new PacketEvent<>(player, transform.apply(packet));
+        packetListenerAdapter.onPacketEvent(event);
+        if (event.getCancelled()) {
+            return null;
+        }
+        if (event.getPacket().getModified()) {
+            return reverse.apply(event.getPacket());
+        }
+        return packet;
     }
 
     @Override

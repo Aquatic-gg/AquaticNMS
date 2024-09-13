@@ -4,9 +4,7 @@ import gg.aquatic.aquaticseries.lib.AbstractAquaticSeriesLib;
 import gg.aquatic.aquaticseries.lib.NMSEntityInteractEvent;
 import gg.aquatic.aquaticseries.lib.PlayerChunkLoadEvent;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.lib.nms.packet.*;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_21.ProtectedPacket;
 import io.netty.channel.ChannelDuplexHandler;
@@ -27,8 +25,10 @@ import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.function.Function;
 
 public class AquaticPacketListener extends ChannelDuplexHandler {
 
@@ -53,8 +53,50 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
         }
 
         try {
+            if (pkt instanceof ClientboundDisguisedChatPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundDisguisedChatPacket(
+                        CraftChatMessage.toJSON(packet.message())
+                ), wp -> new ClientboundDisguisedChatPacket(CraftChatMessage.fromJSONOrString(wp.getJsonMessage()), packet.chatType()));
+
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
+                return;
+            }
+            if (pkt instanceof ClientboundSystemChatPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundSystemChatPacket(
+                        packet.overlay(),
+                        CraftChatMessage.toJSON(packet.content())
+                ), wp -> new ClientboundSystemChatPacket(
+                        CraftChatMessage.fromJSONOrString(wp.getJsonMessage()),
+                        wp.getOverlay()
+                ));
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
+                return;
+            }
+
+            if (pkt instanceof ClientboundPlayerChatPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundPlayerChatPacket(
+                        packet.sender(),
+                        packet.body().content(),
+                        CraftChatMessage.toJSON(packet.unsignedContent()),
+                        packet.body().salt(),
+                        packet.body().timeStamp()
+                ), wp -> new ClientboundPlayerChatPacket(
+                        wp.getSender(),
+                        packet.index(),
+                        packet.signature(),
+                        packet.body(),
+                        CraftChatMessage.fromJSONOrString(wp.getUnsignedJsonMessage()),
+                        packet.filterMask(),
+                        packet.chatType()
+                ));
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
+                return;
+            }
             if (pkt instanceof ClientboundContainerSetContentPacket packet) {
-                var wrapped = new WrappedClientboundContainerSetContentPacket(
+                var toReturn = handlePacket(packet, p-> new WrappedClientboundContainerSetContentPacket(
                         packet.getContainerId(),
                         packet.getStateId(),
                         packet.getItems().stream().map(i -> {
@@ -65,84 +107,61 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                             }
                         }).toList(),
                         CraftItemStack.asBukkitCopy(packet.getCarriedItem())
-                );
-                var event = new PacketEvent<>(player, wrapped);
-                packetListenerAdapter.onPacketEvent(event);
-                if (event.getCancelled()) {
-                    return;
-                }
-                if (event.getPacket().getModified()) {
+                ), wp-> {
                     NonNullList<ItemStack> items = NonNullList.create();
                     items.addAll(
-                            wrapped.getItems().stream().map(i -> {
+                            wp.getItems().stream().map(i -> {
                                 if (i == null) {
                                     return null;
                                 } else {
                                     return CraftItemStack.asNMSCopy(i);
                                 }
                             }).toList());
-                    var newPacket = new ClientboundContainerSetContentPacket(
-                            wrapped.getContainerId(),
-                            wrapped.getStateId(),
+                    return new ClientboundContainerSetContentPacket(
+                            wp.getContainerId(),
+                            wp.getStateId(),
                             items,
-                            CraftItemStack.asNMSCopy(wrapped.getCarriedItem())
+                            CraftItemStack.asNMSCopy(wp.getCarriedItem())
                     );
-                    super.write(ctx, newPacket, promise);
-                    return;
-                }
-                super.write(ctx, pkt, promise);
+                });
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
                 return;
-            } else if (pkt instanceof ClientboundContainerSetSlotPacket packet) {
-                org.bukkit.inventory.ItemStack item;
-                if (packet.getItem() == null) {
-                    item = null;
-                } else {
-                    item = CraftItemStack.asBukkitCopy(packet.getItem());
-                }
-                var wrapped = new WrappedClientboundContainerSetSlotPacket(
-                        packet.getContainerId(),
-                        packet.getStateId(),
-                        packet.getSlot(),
-                        item
-                );
-                var event = new PacketEvent<>(player, wrapped);
-                packetListenerAdapter.onPacketEvent(event);
-                if (event.getCancelled()) {
-                    return;
-                }
-                if (event.getPacket().getModified()) {
-                    var newPacket = new ClientboundContainerSetSlotPacket(
-                            wrapped.getContainerId(),
-                            wrapped.getStateId(),
-                            wrapped.getSlot(),
-                            CraftItemStack.asNMSCopy(wrapped.getItemStack())
+            } if (pkt instanceof ClientboundContainerSetSlotPacket packet) {
+                var toReturn = handlePacket(packet, p-> {
+                    org.bukkit.inventory.ItemStack item;
+                    if (packet.getItem() == null) {
+                        item = null;
+                    } else {
+                        item = CraftItemStack.asBukkitCopy(packet.getItem());
+                    }
+                    return new WrappedClientboundContainerSetSlotPacket(
+                            packet.getContainerId(),
+                            packet.getStateId(),
+                            packet.getSlot(),
+                            item
                     );
-                    super.write(ctx, newPacket, promise);
-                    return;
-                }
-                super.write(ctx, pkt, promise);
+                }, wp-> new ClientboundContainerSetSlotPacket(
+                        wp.getContainerId(),
+                        wp.getStateId(),
+                        wp.getSlot(),
+                        CraftItemStack.asNMSCopy(wp.getItemStack())
+                ));
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
                 return;
-            } else if (pkt instanceof ClientboundOpenScreenPacket packet) {
-                var wrapped = new WrappedClientboundOpenScreenPacket(
+            } if (pkt instanceof ClientboundOpenScreenPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundOpenScreenPacket(
                         packet.getContainerId(),
                         BuiltInRegistries.MENU.getId(packet.getType()),
                         Component.Serializer.toJson(packet.getTitle(), ((CraftPlayer) player).getHandle().registryAccess())
-                );
-                var event = new PacketEvent<>(player, wrapped);
-                packetListenerAdapter.onPacketEvent(event);
-                if (event.getCancelled()) {
-                    return;
-                }
-                if (event.getPacket().getModified()) {
-                    var newPacket = new ClientboundOpenScreenPacket(
-                            wrapped.getContainerId(),
-                            BuiltInRegistries.MENU.byId(wrapped.getType()),
-                            CraftChatMessage.fromJSONOrString(wrapped.getStringOrJsonTitle())
-                    );
-                    super.write(ctx, newPacket, promise);
-                    return;
-                }
-                super.write(ctx, pkt, promise);
+                ), wp -> new ClientboundOpenScreenPacket(
+                        wp.getContainerId(),
+                        BuiltInRegistries.MENU.byId(wp.getType()),
+                        CraftChatMessage.fromJSONOrString(wp.getStringOrJsonTitle())
+                ));
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
                 return;
             }
             if (pkt instanceof ClientboundLevelChunkWithLightPacket packet) {
@@ -162,6 +181,19 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
         }
 
         super.write(ctx, pkt, promise);
+    }
+
+    private <T, D extends WrappedPacket> @Nullable T handlePacket(T packet, Function<T, D> transform, Function<D, T> reverse) {
+
+        var event = new PacketEvent<>(player, transform.apply(packet));
+        packetListenerAdapter.onPacketEvent(event);
+        if (event.getCancelled()) {
+            return null;
+        }
+        if (event.getPacket().getModified()) {
+            return reverse.apply(event.getPacket());
+        }
+        return packet;
     }
 
     @Override

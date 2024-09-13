@@ -7,6 +7,7 @@ import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.lib.nms.packet.WrappedPacket;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_18_2.ProtectedPacket;
 import io.netty.channel.ChannelDuplexHandler;
@@ -19,15 +20,16 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_18_R2.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.function.Function;
 
 public class AquaticPacketListener extends ChannelDuplexHandler {
 
@@ -160,6 +162,19 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
         }
 
         super.write(ctx, pkt, promise);
+    }
+
+    private <T, D extends WrappedPacket> @Nullable T handlePacket(T packet, Function<T, D> transform, Function<D, T> reverse) {
+
+        var event = new PacketEvent<>(player, transform.apply(packet));
+        packetListenerAdapter.onPacketEvent(event);
+        if (event.getCancelled()) {
+            return null;
+        }
+        if (event.getPacket().getModified()) {
+            return reverse.apply(event.getPacket());
+        }
+        return packet;
     }
 
     @Override

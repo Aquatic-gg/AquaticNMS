@@ -3,9 +3,7 @@ package gg.aquatic.aquaticseries.nms.v1_20_1.listener;
 import gg.aquatic.aquaticseries.lib.nms.listener.AbstractPacketListener;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
-import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
+import gg.aquatic.aquaticseries.lib.nms.packet.*;
 import gg.aquatic.aquaticseries.nms.v1_20_1.NMS_1_20_1;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -97,6 +95,18 @@ public class PacketListenerAdapterImpl implements PacketListenerAdapter {
         } else if (packet instanceof WrappedClientboundContainerSetSlotPacket) {
             for (AbstractPacketListener listener : listeners) {
                 listener.onClientboundContainerSetSlotPacket((PacketEvent<WrappedClientboundContainerSetSlotPacket>) event);
+            }
+        }else if (packet instanceof WrappedClientboundDisguisedChatPacket) {
+            for (AbstractPacketListener listener : listeners) {
+                listener.onClientboundDisguisedChatPacket((PacketEvent<WrappedClientboundDisguisedChatPacket>) event);
+            }
+        } else if (packet instanceof WrappedClientboundPlayerChatPacket) {
+            for (AbstractPacketListener listener : listeners) {
+                listener.onClientboundPlayerChatPacket((PacketEvent<WrappedClientboundPlayerChatPacket>) event);
+            }
+        } else if (packet instanceof WrappedClientboundSystemChatPacket) {
+            for (AbstractPacketListener listener : listeners) {
+                listener.onClientboundSystemChatPacket((PacketEvent<WrappedClientboundSystemChatPacket>) event);
             }
         }
     }
