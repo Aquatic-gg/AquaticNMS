@@ -290,29 +290,61 @@ public final class NMS_1_17_1 implements NMSAdapter {
     }
 
     @Override
-    public void addTabCompletion(List<? extends Player> players, List<String> list) {
-        var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
-        for (String s : list) {
-            var uuid = UUID.randomUUID();
-            var gameProfile = new GameProfile(uuid, s);
-            var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
-            entries.add(entry);
-        }
-        var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER,new ArrayList<>());
-        Field entriesField = null;
-        for (Field declaredField : packet.getClass().getDeclaredFields()) {
-            if (declaredField.getType().equals(List.class)) {
-                entriesField = declaredField;
-                break;
+    public void modifyTabCompletion(TabCompletionAction tabCompletionAction, List<String> list, Player... players) {
+        switch (tabCompletionAction) {
+            case ADD -> {
+                var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
+                for (String s : list) {
+                    var uuid = UUID.randomUUID();
+                    var gameProfile = new GameProfile(uuid, s);
+                    var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
+                    entries.add(entry);
+                }
+                var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, new ArrayList<>());
+                Field entriesField = null;
+                for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                    if (declaredField.getType().equals(List.class)) {
+                        entriesField = declaredField;
+                        break;
+                    }
+                }
+                if (entriesField == null) return;
+                entriesField.setAccessible(true);
+                try {
+                    entriesField.set(packet, entries);
+                    sendPacket(Arrays.stream(players).toList(), packet, false);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
-        }
-        if (entriesField == null) return;
-        entriesField.setAccessible(true);
-        try {
-            entriesField.set(packet, entries);
-            sendPacket((List<Player>) players, packet, false);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            case REMOVE -> {
+                var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
+                for (String s : list) {
+                    var uuid = UUID.randomUUID();
+                    var gameProfile = new GameProfile(uuid, s);
+                    var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
+                    entries.add(entry);
+                }
+                var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, new ArrayList<>());
+                Field entriesField = null;
+                for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                    if (declaredField.getType().equals(List.class)) {
+                        entriesField = declaredField;
+                        break;
+                    }
+                }
+                if (entriesField == null) return;
+                entriesField.setAccessible(true);
+                try {
+                    entriesField.set(packet, entries);
+                    sendPacket(Arrays.stream(players).toList(), packet, false);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            default -> {
+
+            }
         }
     }
 

@@ -65,7 +65,7 @@ public final class NMS_1_18_2 implements NMSAdapter {
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
-        sendPacket(abstractAudience,entity.getAddEntityPacket(), true);
+        sendPacket(abstractAudience, entity.getAddEntityPacket(), true);
         sendPacket(abstractAudience, packetData, true);
 
         if (entity instanceof LivingEntity livingEntity) {
@@ -73,8 +73,8 @@ public final class NMS_1_18_2 implements NMSAdapter {
             for (EquipmentSlot value : EquipmentSlot.values()) {
                 list.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),list);
-            sendPacket(abstractAudience,packet, true);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), list);
+            sendPacket(abstractAudience, packet, true);
         }
 
         entities.put(entity.getId(), entity);
@@ -109,10 +109,10 @@ public final class NMS_1_18_2 implements NMSAdapter {
         if (entity instanceof LivingEntity livingEntity) {
             final List<Pair<EquipmentSlot, ItemStack>> equipmentMap = new ArrayList<>();
             for (EquipmentSlot value : EquipmentSlot.values()) {
-                equipmentMap.add(Pair.of(value,livingEntity.getItemBySlot(value)));
+                equipmentMap.add(Pair.of(value, livingEntity.getItemBySlot(value)));
             }
-            final var packet = new ClientboundSetEquipmentPacket(entity.getId(),equipmentMap);
-            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()),packet, true);
+            final var packet = new ClientboundSetEquipmentPacket(entity.getId(), equipmentMap);
+            sendPacket(new ArrayList<>(Bukkit.getOnlinePlayers()), packet, true);
         }
     }
 
@@ -120,8 +120,8 @@ public final class NMS_1_18_2 implements NMSAdapter {
     public void updateEntityVelocity(int i, Vector vector, AquaticAudience abstractAudience) {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         entity.getBukkitEntity().setVelocity(vector);
-        final var packet = new ClientboundSetEntityMotionPacket(i,new Vec3(vector.getX(),vector.getY(),vector.getZ()));
-        sendPacket(abstractAudience,packet, true);
+        final var packet = new ClientboundSetEntityMotionPacket(i, new Vec3(vector.getX(), vector.getY(), vector.getZ()));
+        sendPacket(abstractAudience, packet, true);
     }
 
     @Override
@@ -134,7 +134,7 @@ public final class NMS_1_18_2 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
     }
 
     @Override
@@ -148,17 +148,17 @@ public final class NMS_1_18_2 implements NMSAdapter {
         entity.getBukkitEntity().teleport(location);
         final var packet = new ClientboundMoveEntityPacket.PosRot(
                 i,
-                (short)((location.getX() * 32 - prevLoc.getX() * 32) * 128),
-                (short)((location.getY() * 32 - prevLoc.getY() * 32) * 128),
-                (short)((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
+                (short) ((location.getX() * 32 - prevLoc.getX() * 32) * 128),
+                (short) ((location.getY() * 32 - prevLoc.getY() * 32) * 128),
+                (short) ((location.getZ() * 32 - prevLoc.getZ() * 32) * 128),
                 (byte) ((int) (location.getYaw() * 256.0F / 360.0F)),
                 (byte) ((int) (location.getPitch() * 256.0F / 360.0F)),
                 true
         );
 
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
         sendPacket(abstractAudience,
-                new ClientboundRotateHeadPacket(entities.get(i),(byte) ((int) (location.getYaw() * 256.0F / 360.0F))), true
+                new ClientboundRotateHeadPacket(entities.get(i), (byte) ((int) (location.getYaw() * 256.0F / 360.0F))), true
         );
     }
 
@@ -171,28 +171,28 @@ public final class NMS_1_18_2 implements NMSAdapter {
                 entity = ((CraftPlayer) Objects.requireNonNull(player)).getHandle();
 
                 final var packet = new ClientboundSetCameraPacket(entity);
-                sendPacket(List.of(player),packet, true);
+                sendPacket(List.of(player), packet, true);
             }
             return;
         }
 
         final var packet = new ClientboundSetCameraPacket(entity);
-        sendPacket(abstractAudience,packet, true);
+        sendPacket(abstractAudience, packet, true);
 
     }
 
     @Override
     public void setGamemode(GameMode gameMode, Player player) {
-        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3),gameMode.getValue());
-        sendPacket(Arrays.asList(player),packet, true);
+        final var packet = new ClientboundGameEventPacket(new ClientboundGameEventPacket.Type(3), gameMode.getValue());
+        sendPacket(Arrays.asList(player), packet, true);
     }
 
     @Override
     public void setPlayerInfoGamemode(GameMode gameMode, Player player) {
-        final var playerHandle = ((CraftPlayer)player).getHandle();
+        final var playerHandle = ((CraftPlayer) player).getHandle();
 
         ClientboundPlayerInfoPacket.Action action2 = ClientboundPlayerInfoPacket.Action.valueOf("UPDATE_GAME_MODE");
-        final var packet = new ClientboundPlayerInfoPacket(action2,playerHandle);
+        final var packet = new ClientboundPlayerInfoPacket(action2, playerHandle);
 
         try {
             final Field packetsField;
@@ -207,7 +207,7 @@ public final class NMS_1_18_2 implements NMSAdapter {
                     playerHandle.listName)
             );
 
-            packetsField.set(packet,list);
+            packetsField.set(packet, list);
             sendPacket(Arrays.asList(player), packet, true);
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -284,29 +284,61 @@ public final class NMS_1_18_2 implements NMSAdapter {
     }
 
     @Override
-    public void addTabCompletion(List<? extends Player> players, List<String> list) {
-        var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
-        for (String s : list) {
-            var uuid = UUID.randomUUID();
-            var gameProfile = new GameProfile(uuid, s);
-            var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
-            entries.add(entry);
-        }
-        var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER,new ArrayList<>());
-        Field entriesField = null;
-        for (Field declaredField : packet.getClass().getDeclaredFields()) {
-            if (declaredField.getType().equals(List.class)) {
-                entriesField = declaredField;
-                break;
+    public void modifyTabCompletion(TabCompletionAction tabCompletionAction, List<String> list, Player... players) {
+        switch (tabCompletionAction) {
+            case ADD -> {
+                var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
+                for (String s : list) {
+                    var uuid = UUID.randomUUID();
+                    var gameProfile = new GameProfile(uuid, s);
+                    var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
+                    entries.add(entry);
+                }
+                var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, new ArrayList<>());
+                Field entriesField = null;
+                for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                    if (declaredField.getType().equals(List.class)) {
+                        entriesField = declaredField;
+                        break;
+                    }
+                }
+                if (entriesField == null) return;
+                entriesField.setAccessible(true);
+                try {
+                    entriesField.set(packet, entries);
+                    sendPacket(Arrays.stream(players).toList(), packet, false);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
-        }
-        if (entriesField == null) return;
-        entriesField.setAccessible(true);
-        try {
-            entriesField.set(packet, entries);
-            sendPacket((List<Player>) players, packet, false);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            case REMOVE -> {
+                var entries = new ArrayList<ClientboundPlayerInfoPacket.PlayerUpdate>();
+                for (String s : list) {
+                    var uuid = UUID.randomUUID();
+                    var gameProfile = new GameProfile(uuid, s);
+                    var entry = new ClientboundPlayerInfoPacket.PlayerUpdate(gameProfile, 0, GameType.CREATIVE, null);
+                    entries.add(entry);
+                }
+                var packet = new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, new ArrayList<>());
+                Field entriesField = null;
+                for (Field declaredField : packet.getClass().getDeclaredFields()) {
+                    if (declaredField.getType().equals(List.class)) {
+                        entriesField = declaredField;
+                        break;
+                    }
+                }
+                if (entriesField == null) return;
+                entriesField.setAccessible(true);
+                try {
+                    entriesField.set(packet, entries);
+                    sendPacket(Arrays.stream(players).toList(), packet, false);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            default -> {
+
+            }
         }
     }
 

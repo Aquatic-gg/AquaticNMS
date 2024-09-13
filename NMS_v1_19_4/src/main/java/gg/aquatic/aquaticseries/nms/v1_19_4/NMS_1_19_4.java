@@ -326,30 +326,23 @@ public class NMS_1_19_4 implements NMSAdapter {
     }
 
     @Override
-    public void addTabCompletion(List<? extends Player> players, List<String> list) {
-        var entries = new ArrayList<ClientboundPlayerInfoUpdatePacket.Entry>();
-        for (String s : list) {
-            var uuid = UUID.randomUUID();
-            var gameProfile = new GameProfile(uuid, s);
-            var entry = new ClientboundPlayerInfoUpdatePacket.Entry(uuid, gameProfile, true, 0, GameType.CREATIVE, null, null);
-            entries.add(entry);
-        }
-        var actions = EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER);
-        var packet = new ClientboundPlayerInfoUpdatePacket(actions,new ArrayList<>());
-        Field entriesField = null;
-        for (Field declaredField : packet.getClass().getDeclaredFields()) {
-            if (declaredField.getType().equals(List.class)) {
-                entriesField = declaredField;
-                break;
+    public void modifyTabCompletion(TabCompletionAction tabCompletionAction, List<String> list, Player... players) {
+        switch (tabCompletionAction) {
+            case ADD -> {
+                for (Player player : players) {
+                    player.addCustomChatCompletions(list);
+                }
             }
-        }
-        if (entriesField == null) return;
-        entriesField.setAccessible(true);
-        try {
-            entriesField.set(packet, entries);
-            sendPacket((List<Player>) players, packet, false);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            case SET -> {
+                for (Player player : players) {
+                    player.setCustomChatCompletions(list);
+                }
+            }
+            case REMOVE -> {
+                for (Player player : players) {
+                    player.removeCustomChatCompletions(list);
+                }
+            }
         }
     }
 
