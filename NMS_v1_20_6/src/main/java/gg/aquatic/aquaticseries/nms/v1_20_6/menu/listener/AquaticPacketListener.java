@@ -53,6 +53,14 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
         }
 
         try {
+            if (pkt instanceof ClientboundRespawnPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundRespawnPacket(),
+                        wp -> pkt);
+
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
+                return;
+            }
             if (pkt instanceof ClientboundDisguisedChatPacket packet) {
                 var toReturn = handlePacket(packet, p -> new WrappedClientboundDisguisedChatPacket(
                         CraftChatMessage.toJSON(packet.message())

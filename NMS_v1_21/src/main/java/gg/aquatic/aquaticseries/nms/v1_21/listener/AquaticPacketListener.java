@@ -53,6 +53,15 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
         }
 
         try {
+            if (pkt instanceof ClientboundRespawnPacket packet) {
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundRespawnPacket(),
+                        wp -> pkt);
+
+                if (toReturn == null) return;
+                super.write(ctx, toReturn, promise);
+                return;
+            }
+
             if (pkt instanceof ClientboundDisguisedChatPacket packet) {
                 var toReturn = handlePacket(packet, p -> new WrappedClientboundDisguisedChatPacket(
                         CraftChatMessage.toJSON(packet.message())
@@ -96,7 +105,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                 return;
             }
             if (pkt instanceof ClientboundContainerSetContentPacket packet) {
-                var toReturn = handlePacket(packet, p-> new WrappedClientboundContainerSetContentPacket(
+                var toReturn = handlePacket(packet, p -> new WrappedClientboundContainerSetContentPacket(
                         packet.getContainerId(),
                         packet.getStateId(),
                         packet.getItems().stream().map(i -> {
@@ -107,7 +116,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                             }
                         }).toList(),
                         CraftItemStack.asBukkitCopy(packet.getCarriedItem())
-                ), wp-> {
+                ), wp -> {
                     NonNullList<ItemStack> items = NonNullList.create();
                     items.addAll(
                             wp.getItems().stream().map(i -> {
@@ -127,8 +136,9 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                 if (toReturn == null) return;
                 super.write(ctx, toReturn, promise);
                 return;
-            } if (pkt instanceof ClientboundContainerSetSlotPacket packet) {
-                var toReturn = handlePacket(packet, p-> {
+            }
+            if (pkt instanceof ClientboundContainerSetSlotPacket packet) {
+                var toReturn = handlePacket(packet, p -> {
                     org.bukkit.inventory.ItemStack item;
                     if (packet.getItem() == null) {
                         item = null;
@@ -141,7 +151,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                             packet.getSlot(),
                             item
                     );
-                }, wp-> new ClientboundContainerSetSlotPacket(
+                }, wp -> new ClientboundContainerSetSlotPacket(
                         wp.getContainerId(),
                         wp.getStateId(),
                         wp.getSlot(),
@@ -150,7 +160,8 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                 if (toReturn == null) return;
                 super.write(ctx, toReturn, promise);
                 return;
-            } if (pkt instanceof ClientboundOpenScreenPacket packet) {
+            }
+            if (pkt instanceof ClientboundOpenScreenPacket packet) {
                 var toReturn = handlePacket(packet, p -> new WrappedClientboundOpenScreenPacket(
                         packet.getContainerId(),
                         BuiltInRegistries.MENU.getId(packet.getType()),
@@ -175,7 +186,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                     }
                 }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
             }
-        }catch (Exception ignored) {
+        } catch (Exception ignored) {
             super.write(ctx, pkt, promise);
             return;
         }
@@ -251,7 +262,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                 }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
             }
         } catch (Exception ignored) {
-            super.channelRead(ctx,msg);
+            super.channelRead(ctx, msg);
             return;
         }
 

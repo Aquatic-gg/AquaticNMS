@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>gg.aquatic.aquaticseries.nms</groupId>
-    <version>1.0.30</version>
+    <version>1.0.31</version>
     <artifactId>NMS_v1_20_1</artifactId>
 
     <properties>
@@ -90,7 +90,7 @@
         <dependency>
             <groupId>gg.aquatic.aquaticseries</groupId>
             <artifactId>aquaticlib</artifactId>
-            <version>1.0.4.49</version>
+            <version>1.0.4.61</version>
             <classifier>all</classifier>
             <exclusions>
                 <exclusion>
