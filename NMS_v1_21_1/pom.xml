@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>gg.aquatic.aquaticseries.nms</groupId>
-    <version>1.0.33</version>
+    <version>1.0.34</version>
     <artifactId>NMS_v1_21_1</artifactId>
 
     <properties>
@@ -87,26 +87,34 @@
         </repository>
     </repositories>
 
-    <dependencies>
+    <dependencies>        <dependency>
+        <groupId>gg.aquatic.aquaticseries</groupId>
+        <artifactId>aquaticlib-core</artifactId>
+        <version>1.0.24</version>
+        <scope>provided</scope>
+        <classifier>all</classifier>
+        <exclusions>
+            <exclusion>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>io.lumine</groupId>
+                <artifactId>Mythic-Dist</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>gg.aquatic.aquaticseries.core</groupId>
+                <artifactId>core</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
         <dependency>
-            <groupId>gg.aquatic.aquaticseries</groupId>
-            <artifactId>aquaticlib-core</artifactId>
-            <version>1.0.17</version>
+            <groupId>gg.aquatic.aquaticseries.spigot</groupId>
+            <artifactId>spigot</artifactId>
+            <version>1.0.24</version>
             <scope>provided</scope>
             <classifier>all</classifier>
             <exclusions>
-                <exclusion>
-                    <groupId>gg.aquatic.aquaticseries.spigot</groupId>
-                    <artifactId>spigot</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>gg.aquatic.aquaticseries.paper</groupId>
-                    <artifactId>paper</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>gg.aquatic.aquaticseries.core</groupId>
-                    <artifactId>core</artifactId>
-                </exclusion>
                 <exclusion>
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-stdlib</artifactId>
@@ -114,6 +122,31 @@
                 <exclusion>
                     <groupId>io.lumine</groupId>
                     <artifactId>Mythic-Dist</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>gg.aquatic.aquaticseries.core</groupId>
+                    <artifactId>core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>gg.aquatic.aquaticseries.paper</groupId>
+            <artifactId>paper</artifactId>
+            <version>1.0.24</version>
+            <scope>provided</scope>
+            <classifier>all</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.lumine</groupId>
+                    <artifactId>Mythic-Dist</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>gg.aquatic.aquaticseries.core</groupId>
+                    <artifactId>core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

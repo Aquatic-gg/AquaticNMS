@@ -1,11 +1,11 @@
 package gg.aquatic.aquaticseries.nms.v1_20_1.listener;
 
 import gg.aquatic.aquaticseries.lib.AbstractAquaticSeriesLib;
-import gg.aquatic.aquaticseries.lib.NMSEntityInteractEvent;
-import gg.aquatic.aquaticseries.lib.PlayerChunkLoadEvent;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
 import gg.aquatic.aquaticseries.lib.nms.packet.*;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
+import gg.aquatic.aquaticseries.lib.util.event.NMSEntityInteractEvent;
+import gg.aquatic.aquaticseries.lib.util.event.PlayerChunkLoadEvent;
 import gg.aquatic.aquaticseries.nms.v1_20_1.ProtectedPacket;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,7 +21,6 @@ import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R1.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -178,7 +177,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         var event = new PlayerChunkLoadEvent(player, chunk);
                         EventExtKt.call(event);
                     }
-                }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
+                }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
             }
         } catch (Exception ignored) {
             super.write(ctx, pkt, promise);
@@ -253,7 +252,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         });
 
                     }
-                }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
+                }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
             }
         } catch (Exception exception) {
             super.channelRead(ctx,msg);

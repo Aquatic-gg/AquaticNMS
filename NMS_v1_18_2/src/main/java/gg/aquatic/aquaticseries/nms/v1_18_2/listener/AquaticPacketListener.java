@@ -1,14 +1,14 @@
 package gg.aquatic.aquaticseries.nms.v1_18_2.listener;
 
 import gg.aquatic.aquaticseries.lib.AbstractAquaticSeriesLib;
-import gg.aquatic.aquaticseries.lib.NMSEntityInteractEvent;
-import gg.aquatic.aquaticseries.lib.PlayerChunkLoadEvent;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketEvent;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetContentPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundContainerSetSlotPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedClientboundOpenScreenPacket;
 import gg.aquatic.aquaticseries.lib.nms.packet.WrappedPacket;
 import gg.aquatic.aquaticseries.lib.util.EventExtKt;
+import gg.aquatic.aquaticseries.lib.util.event.NMSEntityInteractEvent;
+import gg.aquatic.aquaticseries.lib.util.event.PlayerChunkLoadEvent;
 import gg.aquatic.aquaticseries.nms.v1_18_2.ProtectedPacket;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +20,6 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.craftbukkit.v1_18_R2.command.CraftCommandMap;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_18_R2.util.CraftChatMessage;
 import org.bukkit.entity.Player;
@@ -155,7 +154,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         var event = new PlayerChunkLoadEvent(player, chunk);
                         EventExtKt.call(event);
                     }
-                }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
+                }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
             }
         } catch (Exception ignored) {
             super.write(ctx, pkt, promise);
@@ -230,7 +229,7 @@ public class AquaticPacketListener extends ChannelDuplexHandler {
                         });
 
                     }
-                }.runTask(AbstractAquaticSeriesLib.Companion.getINSTANCE().getPlugin());
+                }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
             }
         } catch (Exception ignored) {
             super.channelRead(ctx, msg);
