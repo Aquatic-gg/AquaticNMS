@@ -1,26 +1,21 @@
 package gg.aquatic.aquaticseries.nms.v1_21_1;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
 import gg.aquatic.aquaticseries.lib.nms.listener.PacketListenerAdapter;
-import gg.aquatic.aquaticseries.lib.util.EventExtKt;
 import gg.aquatic.aquaticseries.nms.v1_21_1.listener.PacketListenerAdapterImpl;
 import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
-import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerEntity;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.network.ServerPlayerConnection;
@@ -185,8 +180,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
             return;
         }
         net.minecraft.world.entity.Entity entity = entities.get(i);
-
-        entity.getBukkitEntity().teleport(location);
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
         sendPacket(abstractAudience, packet, true);
@@ -200,7 +194,7 @@ public final class NMS_1_21_1 implements NMSAdapter {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         Location prevLoc = entity.getBukkitEntity().getLocation();
 
-        entity.getBukkitEntity().teleport(location);
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         final var packet = new ClientboundMoveEntityPacket.PosRot(
                 i,
                 (short) ((location.getX() * 32 - prevLoc.getX() * 32) * 128),

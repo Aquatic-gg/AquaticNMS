@@ -130,7 +130,7 @@ public final class NMS_1_18_2 implements NMSAdapter {
         }
         net.minecraft.world.entity.Entity entity = entities.get(i);
 
-        entity.getBukkitEntity().teleport(location);
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         final var packet = new ClientboundTeleportEntityPacket(entity);
 
         sendPacket(abstractAudience, packet, true);
@@ -144,7 +144,7 @@ public final class NMS_1_18_2 implements NMSAdapter {
         net.minecraft.world.entity.Entity entity = entities.get(i);
         Location prevLoc = entity.getBukkitEntity().getLocation();
 
-        entity.getBukkitEntity().teleport(location);
+        entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         final var packet = new ClientboundMoveEntityPacket.PosRot(
                 i,
                 (short) ((location.getX() * 32 - prevLoc.getX() * 32) * 128),
