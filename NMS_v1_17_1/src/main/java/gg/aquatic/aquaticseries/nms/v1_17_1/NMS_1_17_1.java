@@ -2,10 +2,12 @@ package gg.aquatic.aquaticseries.nms.v1_17_1;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
+import gg.aquatic.aquaticseries.lib.AbstractAquaticSeriesLib;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
@@ -35,6 +37,7 @@ import org.bukkit.craftbukkit.v1_17_R1.util.CraftChatMessage;
 import org.bukkit.craftbukkit.v1_17_R1.util.CraftVector;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 
@@ -64,7 +67,16 @@ public final class NMS_1_17_1 implements NMSAdapter {
         entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
         if (consumer != null) {
-            consumer.accept(entity.getBukkitEntity());
+            var future = new CompletableFuture<Void>();
+            new BukkitRunnable() {
+
+                @Override
+                public void run() {
+                    consumer.accept(entity.getBukkitEntity());
+                    future.complete(null);
+                }
+            }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
+            future.join();
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);

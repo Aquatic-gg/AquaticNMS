@@ -2,6 +2,7 @@ package gg.aquatic.aquaticseries.nms.v1_18_2;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
+import gg.aquatic.aquaticseries.lib.AbstractAquaticSeriesLib;
 import gg.aquatic.aquaticseries.lib.adapt.AquaticString;
 import gg.aquatic.aquaticseries.lib.audience.AquaticAudience;
 import gg.aquatic.aquaticseries.lib.nms.NMSAdapter;
@@ -12,13 +13,19 @@ import gg.aquatic.aquaticseries.paper.adapt.PaperString;
 import gg.aquatic.aquaticseries.spigot.adapt.SpigotString;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -28,10 +35,13 @@ import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_18_R2.util.CraftChatMessage;
 import org.bukkit.craftbukkit.v1_18_R2.util.CraftVector;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public final class NMS_1_18_2 implements NMSAdapter {
@@ -46,21 +56,26 @@ public final class NMS_1_18_2 implements NMSAdapter {
         }
 
         final var worldServer = ((CraftWorld) Objects.requireNonNull(location.getWorld())).getHandle();
-        final var entity = entityOpt.get().create(
+        final var entity = createEntity(
+                entityOpt.get(),
                 worldServer,
-                null,
-                null,
-                null,
                 new BlockPos(CraftVector.toNMS(location.toVector())),
-                MobSpawnType.COMMAND,
-                true,
-                false
+                MobSpawnType.COMMAND
         );
 
         entity.absMoveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
         if (consumer != null) {
-            consumer.accept(entity.getBukkitEntity());
+            var future = new CompletableFuture<Void>();
+            new BukkitRunnable() {
+
+                @Override
+                public void run() {
+                    consumer.accept(entity.getBukkitEntity());
+                    future.complete(null);
+                }
+            }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
+            future.join();
         }
 
         final var packetData = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
@@ -78,6 +93,23 @@ public final class NMS_1_18_2 implements NMSAdapter {
 
         entities.put(entity.getId(), entity);
         return entity.getId();
+    }
+
+    private <T extends Entity> Entity createEntity(EntityType<T> entityType, ServerLevel worldserver, BlockPos blockposition, MobSpawnType enummobspawn) {
+        T t0 = entityType.create(worldserver);
+        if (t0 == null) {
+            return null;
+        } else {
+            t0.moveTo((double)blockposition.getX() + 0.5, (double)blockposition.getY() , (double)blockposition.getZ() + 0.5, 0.0F, 0.0F);
+            if (t0 instanceof Mob entityinsentient) {
+                entityinsentient.yHeadRot = entityinsentient.getYRot();
+                entityinsentient.yBodyRot = entityinsentient.getYRot();
+                entityinsentient.finalizeSpawn(worldserver, worldserver.getCurrentDifficultyAt(entityinsentient.blockPosition()), enummobspawn, (SpawnGroupData)null, null);
+                entityinsentient.playAmbientSound();
+            }
+
+            return t0;
+        }
     }
 
     @Override
@@ -99,7 +131,16 @@ public final class NMS_1_18_2 implements NMSAdapter {
         net.minecraft.world.entity.Entity entity = entities.get(i);
 
         if (consumer != null) {
-            consumer.accept(entity.getBukkitEntity());
+            var future = new CompletableFuture<Void>();
+            new BukkitRunnable() {
+
+                @Override
+                public void run() {
+                    consumer.accept(entity.getBukkitEntity());
+                    future.complete(null);
+                }
+            }.runTask(AbstractAquaticSeriesLib.Companion.getInstance().getPlugin());
+            future.join();
         }
 
         final var packetMetadata = new ClientboundSetEntityDataPacket(entity.getId(), entity.getEntityData(), true);
